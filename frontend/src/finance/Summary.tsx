@@ -1,0 +1,24 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
+import { finance, pen } from './api'
+import { LoadState, PageHeader, PeriodPicker, Select, initialPeriod, periodQuery, useResource } from './ui'
+
+export default function Summary({ welcome = false }: { welcome?: boolean }) {
+  const { user } = useAuth()
+  const [period, setPeriod] = useState(initialPeriod)
+  const [granularity, setGranularity] = useState<'daily' | 'weekly' | 'monthly'>('daily')
+  const query = periodQuery(period)
+  const state = useResource((signal) => finance.summary(query, signal), [query])
+  const data = state.data
+  return <><PageHeader eyebrow="RESUMEN FINANCIERO" title={welcome ? `Bienvenido, ${user?.first_name}` : 'Tu panorama financiero'}>PEN · {user?.timezone} · Totales calculados desde tus movimientos vigentes.</PageHeader>
+    <div className="flex flex-wrap items-end justify-between gap-4"><PeriodPicker value={period} onChange={setPeriod} /><div className="flex gap-3"><Link to="/gastos/nuevo" className="button-primary">Nuevo gasto</Link><Link to="/ingresos/nuevo" className="button-secondary">Nuevo ingreso</Link></div></div>
+    <LoadState {...state} retry={state.reload} />{data && !state.error && !state.loading ? <>
+      <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{[['Ingresos del periodo', data.income], ['Gastos del periodo', data.expense], ['Flujo neto del periodo', data.net_flow]].map(([label, value]) => <section key={label} className="card"><h2 className="text-sm text-slate-500">{label}</h2><p className="mt-4 break-words text-3xl font-semibold">{pen(value)}</p></section>)}</div>
+      <section className="mt-5 rounded-2xl bg-slate-900 p-7 text-white"><h2 className="text-sm text-emerald-300">Patrimonio registrado actual</h2><p className="mt-3 break-words text-4xl font-semibold">{pen(data.net_worth)}</p><p className="mt-4 text-sm leading-relaxed text-slate-300">Suma de saldos firmados de todas tus cuentas, incluidas las inactivas. Deuda de tarjetas: {pen(data.credit_debt)}. No incluye bienes ni deudas fuera de estas cuentas.</p><p className="mt-3 text-xs text-slate-400">El flujo neto corresponde al periodo; el patrimonio incluye saldos iniciales y todo el historial. Las transferencias no alteran el patrimonio total.</p></section>
+      <div className="mt-6 grid gap-6 xl:grid-cols-2">{[['Gastos por área', data.expenses_by_area], ['Gastos por categoría', data.expenses_by_category]] .map(([title, rows]) => <section className="card" key={String(title)}><h2 className="text-lg font-semibold">{String(title)}</h2>{Array.isArray(rows) && rows.length ? <ul className="mt-5 space-y-4">{rows.map((item) => <li key={item.id} className="flex justify-between gap-4 text-sm"><span>{item.name}</span><span className="whitespace-nowrap font-semibold">{pen(item.amount)}</span></li>)}</ul> : <p className="mt-4 text-sm text-slate-500">No hay gastos en este periodo.</p>}</section>)}</div>
+      <section className="card mt-6"><div className="flex flex-wrap items-end justify-between gap-4"><h2 className="text-lg font-semibold">Evolución del periodo</h2><Select label="Agrupar por" name="granularity" value={granularity} onChange={(event) => setGranularity(event.target.value as typeof granularity)}><option value="daily">Día</option><option value="weekly">Semana</option><option value="monthly">Mes</option></Select></div>
+        {data.evolution[granularity].length ? <div className="mt-5 overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Ingresos y gastos agrupados por {granularity}</caption><thead><tr>{['Inicio del grupo', 'Ingresos', 'Gastos', 'Flujo neto'].map((label) => <th key={label} className="whitespace-nowrap p-3 font-medium text-slate-500">{label}</th>)}</tr></thead><tbody>{data.evolution[granularity].map((point) => <tr key={point.date} className="border-t border-slate-100">{[point.date, pen(point.income), pen(point.expense), pen(point.net)].map((value, index) => <td key={index} className="whitespace-nowrap p-3">{value}</td>)}</tr>)}</tbody></table></div> : <p className="mt-5 text-sm text-slate-500">Aún no hay ingresos ni gastos para estos filtros.</p>}
+      </section><section className="card mt-6"><h2 className="text-lg font-semibold">Saldos actuales por cuenta</h2><ul className="mt-5 space-y-4">{data.accounts.map((account) => <li key={account.id} className="flex flex-wrap justify-between gap-2 text-sm"><span>{account.name} · {account.kind === 'CREDIT' ? 'Crédito' : 'Activo'}{!account.is_active ? ' · Inactiva' : ''}</span><span className="font-semibold">{pen(account.balance)}</span></li>)}</ul>{!data.accounts.length ? <p className="mt-4 text-sm text-slate-500">Crea una cuenta para comenzar.</p> : null}<Link to="/cuentas" className="text-link mt-5 inline-block text-sm">Gestionar cuentas →</Link></section>
+    </> : null}</>
+}
