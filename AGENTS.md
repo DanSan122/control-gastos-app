@@ -1,7 +1,7 @@
 # Convenciones de ControlGastos
 
 ## Alcance y estructura
-- Fases 1–4: infraestructura, usuarios, autenticación, gestión financiera, analítica y presupuestos mensuales PEN. Exportaciones y otras monedas requieren nuevas tareas.
+- Fases 1–5: infraestructura, usuarios, autenticación, finanzas, analítica, presupuestos PEN, reportes/exportaciones y auditoría. Otras monedas y notificaciones requieren nuevas tareas.
 - Frontend en `frontend/`; backend en `backend/`; decisiones y requisitos en `docs/`.
 - API bajo `/api/v1/`. Apps Django por dominio bajo `backend/apps/`; componentes React por funcionalidad cuando comience su implementación.
 - Inspeccionar archivos existentes antes de modificarlos. Mantener cambios acotados y documentar decisiones relevantes.
@@ -33,6 +33,9 @@
 - Catálogo inicial mediante seed_catalog idempotente; preservar seed_code estable, renombrados y estados. Revisar docs/finanzas.md al cambiar reglas.
 
 ## Verificación
+- Auditoría: todas las escrituras siguen owner_lock + save; no bulk/update directo en modelos financieros. Eventos atómicos, append-only; no auditar secretos, description/reference/institution. Consultar docs/reportes-auditoria.md. No recrear eventos previos a activación.
+- Reportes: reutilizar filtros/agregaciones; límites de rango/volumen y throttles atómicos. Texto literal en XLSX, protección de fórmulas CSV y escape Paragraph PDF. Importes Excel como texto exacto, no float. Renderizar y revisar páginas tras cambios de PDF.
+- Añadir apps.reports y apps.audit a las suites anteriores; ejecutar tests/browser/reports_flow.py y conservar regresiones. QA sintético con scripts/report_artifact_qa.py y tests/browser/render_report_qa.py, archivos solo bajo artifacts ignorado.
 - Analítica: consultar docs/analitica-presupuestos.md; coordenadas de gráficos normalizadas en backend, dinero exacto como cadena. Presupuestos: alcance exclusivo, unicidad también inactivos, progreso agrupado sin N+1 y alertas derivadas sin persistir consumo.
 - Incluir apps.analytics y apps.budgets en las suites SQLite/PostgreSQL, además de los tests existentes. Ejecutar tests/browser/analytics_flow.py para indicadores, gráficos y presupuestos.
 - Backend: `python backend/manage.py check`, `makemigrations --check --dry-run` y `python backend/manage.py test apps.core apps.users apps.transactions --settings=config.settings_test`.

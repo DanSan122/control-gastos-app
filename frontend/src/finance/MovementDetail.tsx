@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { type FormFeedback } from '../components/Form'
 import { finance, kindLabel, pen, type Movement } from './api'
 import MovementForm from './MovementForm'
+import AuditHistory from '../reports/AuditHistory'
 import { FinanceFeedback, LoadState, PageHeader, feedbackFrom, useResource } from './ui'
 
 export default function MovementDetail() {
@@ -29,5 +30,5 @@ export default function MovementDetail() {
         ['Fecha efectiva', new Intl.DateTimeFormat('es-PE', { dateStyle: 'long', timeStyle: 'short', timeZone: user?.timezone || 'America/Lima' }).format(new Date(state.data.occurred_at))],
       ].map(([label, value]) => <div key={label}><dt className="text-slate-500">{label}</dt><dd className="mt-1 break-words font-medium">{value || '—'}</dd></div>)}</dl>
       <div className="mt-7 flex flex-wrap gap-4">{state.data.status === 'POSTED' ? <><button className="button-primary" disabled={busy} onClick={() => setEditing(true)}>Editar movimiento</button><button className="button-secondary text-red-700" disabled={busy} onClick={annul}>{busy ? 'Anulando…' : 'Anular movimiento'}</button></> : <p className="text-sm text-slate-500">Este registro anulado es inmutable y no participa en saldos ni reportes.</p>}<Link to="/movimientos" className="button-secondary">Ver historial</Link></div>
-    </article> : null}</>
+    </article> : null}{state.data ? <AuditHistory key={id} resourceId={id} revision={state.data.status === 'VOID' ? 1 : 0} /> : null}</>
 }

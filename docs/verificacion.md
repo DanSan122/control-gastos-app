@@ -1,4 +1,43 @@
-# Verificación — Fases 1–4
+# Verificación — Fases 1–5
+
+## Fase 5: resultado final
+
+Fecha: 13 de octubre de 2026, America/Lima. Punto de recuperación previo: commit local 918736c; esta fase no realiza commits.
+
+| Comprobación | Resultado real |
+| --- | --- |
+| Inspección | Instrucciones, README, documentación relevante, cuentas/clasificaciones/movimientos/analítica/presupuestos y sesiones/CSRF revisados; plan incremental presentado |
+| Dependencias | Contenedor limpio Python 3.12: lock anterior + rangos nuevos resueltos, pip check OK, pip freeze real. openpyxl 3.1.5 y ReportLab 4.5.1, cinco dependencias añadidas al lock |
+| Migraciones | audit/0001_initial crea eventos e índices; 0002_append_only agrega trigger UPDATE/DELETE PostgreSQL. Revisadas y aplicadas OK; sin UPDATE financiero, reset ni eliminación de volumen |
+| Preservación al migrar | Antes/después: 13 usuarios, 17 cuentas, 17 movimientos, 2 presupuestos |
+| Pruebas nuevas | apps.reports + apps.audit: 18 tests PostgreSQL OK, incluidos XLSX/CSV/PDF, inyección, precisión extrema, límites, aislamiento, snapshots, rollback y transferencia idempotente |
+| Regresión completa PostgreSQL | 97 tests OK sin omisiones, 119.661 s; incluye las 79 pruebas anteriores, concurrencia y restricciones PostgreSQL; base de tests separada |
+| Regresión completa SQLite | 97 tests OK, skipped=5, 102.566 s; dos concurrencias previas, dos precisiones NUMERIC extremas y trigger PostgreSQL omitidos |
+| Ajuste posterior de PDF | Diez tests de reports PostgreSQL OK tras mantener juntas las dos filas por movimiento; 12.330 s |
+| Comprobación final de módulos nuevos | 18 tests reports/audit PostgreSQL OK, 23.002 s, después de estado vacío, nombre inclusivo de archivo y formato Python a 79 columnas |
+| Esquema/configuración | Django check sin incidencias; makemigrations --check --dry-run: No changes detected |
+| Frontend | Build incluye tsc --noEmit; 654 módulos, OK. Inicial 319.36 kB, reports 8.08 kB, analítica 427.32 kB; sin advertencia de importación tras corregir AuditHistory |
+| Chromium nuevo | reports_flow.py OK: filtros combinados, preview, descargas XLSX/CSV/PDF con sesión real, creación/edición/anulación auditada, privacidad de campos, estado VOID, móvil y rutas privadas |
+| Chromium regresiones | analytics_flow.py, finance_flow.py y auth_flow.py OK, incluidos seis gráficos, presupuestos, reintento de transferencia y sesiones/cambio de contraseña; sin pageerror |
+| PDF renderizado | QA sin base: 40 movimientos con descripciones de 500 caracteres, 16 páginas renderizadas con PyMuPDF 1.28.2. Texto incluye total exacto y último movimiento; portada, páginas intermedias y cierre inspeccionados |
+| Visual frontend | Capturas de reportes escritorio y auditoría móvil inspeccionadas; tests verifican ausencia de desbordamiento horizontal. Descargas sintéticas/capturas ignoradas |
+| PostgreSQL final consultado | SELECT 1 = 1, UTC, 18 tablas, 17 usuarios; cuatro usuarios adicionales creados y conservados por los cuatro flujos E2E |
+
+Comandos reproducibles y endpoints en README y [reportes-auditoria.md](reportes-auditoria.md). Los resultados completos preceden al último ajuste de estado vacío/nombre inclusivo del archivo; las suites específicas reports/audit se repitieron después de esos ajustes y pasaron. El render final comprobó todas las cajas de texto dentro de las páginas y parejas de filas por movimiento. Ningún fallo o ejecución interrumpida se considera aprobación.
+
+### Problemas encontrados
+
+- Primer render: las filas de identidad/importe y descripción del mismo movimiento podían caer en páginas diferentes. Se agregó NOSPLIT por pareja, se regeneraron los documentos y se repitieron pruebas y revisión visual.
+- Un comando auxiliar de render falló por las comillas de Python dentro de PowerShell/Docker. Se sustituyó por render_report_qa.py; el render posterior finalizó correctamente. No se instalaron herramientas globales.
+- Build inicial advertía AuditHistory importado tanto estática como dinámicamente. Se mantuvo su importación compartida estática (componente pequeño); el build final pasó sin esa advertencia.
+- El primer comando de prueba generó artefactos PDF válidos y la suite confirmó su cabecera/EOF, pero eso no se tomó como prueba visual. La comprobación de paginación se hizo después sobre PNG renderizados.
+- SQLite no reproduce NUMERIC extremo ni triggers/concurrencia PostgreSQL; las cinco omisiones son explícitas. PostgreSQL ejecutó todos esos casos.
+
+### Límites
+
+Exportaciones síncronas limitadas por rango/filas y contador atómico. XLSX conserva dinero como texto con formato PEN: no sumas nativas sin conversión explícita. PDF con fuente latina; no garantiza alfabetos/símbolos fuera de su repertorio. Sin plantillas guardadas, exportaciones en cola, firmas digitales ni auditoría resistente a administradores de base. Auditoría comienza al activar Fase 5, no reconstruye historia; señales solo para escrituras que siguen owner_lock/save, no SQL externo/bulk. Chromium Linux y viewport móvil, sin dispositivos físicos/Firefox/WebKit/carga/producción. El host antiguo sigue requiriendo contenedores o versiones compatibles; no se cambió software global ni se borraron datos.
+
+Los resultados siguientes conservan el historial de fases anteriores.
 
 ## Fase 4: resultado final
 

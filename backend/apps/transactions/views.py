@@ -2,7 +2,6 @@ import hashlib
 import json
 from uuid import UUID
 
-from django.db.models import Q
 from rest_framework import status, viewsets
 from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.response import Response
@@ -11,7 +10,7 @@ from rest_framework.views import APIView
 from apps.core.finance import FinancePagination, owner_lock
 from apps.users.authentication import CSRFSafeSessionAuthentication
 from .models import Transaction
-from .periods import period_bounds
+from .filters import filtered_transactions
 from .serializers import TransactionSerializer
 
 
@@ -31,28 +30,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         # Filtros solo en listas; no convierten un recurso propio en inaccesible al editar.
         if self.action != "list":
             return query
-        params = self.request.query_params
-        start, end = period_bounds(params, self.request.user, optional=True)
-        if start:
-            query = query.filter(occurred_at__gte=start, occurred_at__lt=end)
-        for field in ("account", "area", "category", "subcategory"):
-            if params.get(field):
-                try:
-                    value = UUID(params[field])
-                except ValueError:
-                    raise ValidationError({field: "UUID inválido."})
-                query = query.filter(Q(account_id=value) | Q(destination_account_id=value)) if field == "account" else query.filter(**{f"{field}_id": value})
-        for field, allowed in [("kind", ["INCOME", "EXPENSE", "TRANSFER"]), ("status", ["POSTED", "VOID"])]:
-            if params.get(field):
-                if params[field] not in allowed:
-                    raise ValidationError({field: "Valor inválido."})
-                query = query.filter(**{field: params[field]})
-        if params.get("search"):
-            query = query.filter(Q(description__icontains=params["search"]) | Q(reference__icontains=params["search"]))
-        ordering = params.get("ordering", "-occurred_at")
-        if ordering.lstrip("-") not in ("occurred_at", "created_at", "amount"):
-            raise ValidationError({"ordering": "Ordenamiento no permitido."})
-        return query.order_by(ordering, "id")
+        return filtered_transactions(self.request.user, self.request.query_params)
 
     def create(self, request, *args, **kwargs):
         if not isinstance(request.data, dict):

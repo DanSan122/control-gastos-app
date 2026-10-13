@@ -1,6 +1,6 @@
 # ControlGastos
 
-Aplicación multiusuario con Fases 1–4 implementadas: autenticación por sesiones, cuentas, clasificaciones, ingresos/gastos, transferencias, historial, dashboard avanzado y presupuestos mensuales en PEN. React + TypeScript + Vite + Tailwind + Recharts; Django 5.2 LTS + DRF; PostgreSQL 17. Exportaciones y otras monedas quedan para fases posteriores.
+Aplicación multiusuario con Fases 1–5 implementadas: autenticación por sesiones, gestión financiera, dashboard, presupuestos mensuales, reportes XLSX/CSV/PDF y auditoría atómica en PEN. React + TypeScript + Vite + Tailwind + Recharts; Django 5.2 LTS + DRF; PostgreSQL 17. Otras monedas y notificaciones quedan para fases posteriores.
 
 ## Requisitos
 - Python 3.11+ con pip y venv (recomendado Python oficial para Windows).
@@ -18,6 +18,8 @@ backend/apps/categories/ Jerarquía privada y catálogo inicial idempotente
 backend/apps/transactions/ Movimientos, transferencias, saldos, periodos y reportes
 backend/apps/analytics/ Agregaciones, evolución, distribución y comparación
 backend/apps/budgets/ Presupuestos mensuales, progreso y alertas derivadas
+backend/apps/reports/ Reportes filtrados, límites, XLSX/CSV/PDF
+backend/apps/audit/ Eventos append-only y protección PostgreSQL
 backend/scripts/   Comprobación de conexión real y de solo lectura
 tests/browser/     Flujo E2E Chromium y capturas locales ignoradas
 docs/              Arquitectura, requisitos y modelo propuesto
@@ -128,7 +130,7 @@ Documentación completa de modelos, reglas, ejemplos JSON, filtros y reportes en
 | transfers/ | POST con Idempotency-Key UUID obligatorio |
 | reports/summary/ | GET ingresos, gastos, flujo neto, agrupaciones, evolución y saldos |
 
-Todos requieren sesión y CSRF en escrituras. Importe como cadena, por ejemplo `"25.50"`, nunca número JSON. Moneda PEN. Fecha efectiva ISO 8601 con offset/Z. DELETE conserva historial mediante desactivación/anulación. VOID no se edita ni reactiva. Correcciones recalculan saldos; no existe bitácora de versiones anteriores.
+Todos requieren sesión y CSRF en escrituras. Importe como cadena, por ejemplo `"25.50"`, nunca número JSON. Moneda PEN. Fecha efectiva ISO 8601 con offset/Z. DELETE conserva historial mediante desactivación/anulación. VOID no se edita ni reactiva. Desde Fase 5 se auditan cambios; no se reconstruyen versiones históricas anteriores.
 
 Transferencia = un movimiento con dos efectos de saldo, excluido de ingresos/gastos. Crédito = deuda negativa; pago de tarjeta = transferencia desde cuenta de activos. Yape/Plin pueden ser métodos sobre una cuenta bancaria, sin crear saldos duplicados. Saldo de cuenta es distinto del flujo neto del periodo y del patrimonio total; sus definiciones están en el documento financiero.
 
@@ -167,7 +169,40 @@ docker run --rm --ipc=host --env E2E_DOCKER=true --mount type=bind,source=D:\con
 
 La suite PostgreSQL usa base temporal separada. Chromium conserva usuarios sintéticos; no muestra contraseñas. Capturas en tests/browser/artifacts/, ignoradas. Resultados reales en docs/verificacion.md.
 
-## Variables disponibles (referencia)
+## Fase 5: reportes, exportaciones y auditoría
+
+Vistas privadas `/reportes` y `/auditoria`; historial de cambios en el detalle de movimiento. Filtros combinables y vista previa paginada, con exportaciones Excel, CSV y PDF. Contratos y decisiones en [docs/reportes-auditoria.md](docs/reportes-auditoria.md).
+
+API privada GET: `reports/`, `reports/preview/`, `reports/export/xlsx/`, `reports/export/csv/`, `reports/export/pdf/`, `audit/events/`, `audit/events/{uuid}/`, bajo `/api/v1/`. El resumen de Fase 3 conserva su ruta. Las escrituras financieras registran eventos dentro de su misma transacción; las transferencias reintentadas no duplican auditoría. Los eventos no se editan ni borran mediante API.
+
+Excel contiene cinco hojas, importes como texto decimal exacto con formato PEN y sin fórmulas; no admite sumas nativas de esa columna sin conversión explícita. CSV tiene BOM UTF-8 y defensa contra fórmulas; PDF es multipágina con encabezados repetidos. Indicadores excluyen VOID y transferencias, aunque el detalle pueda mostrar esos registros. Auditoría empieza al activar Fase 5 y omite contenidos de descripción, referencia e institución.
+
+Actualización de instalación existente, conservando `.env` y volumen:
+
+```powershell
+docker compose -f compose.yaml -f compose.dev.yaml build backend
+docker compose -f compose.yaml -f compose.dev.yaml up -d backend frontend
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py migrate --plan
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py migrate --noinput
+```
+
+Se agregan openpyxl/ReportLab y dependencias transitivas en el lock generado desde contenedor limpio. Migraciones audit/0001_initial y 0002_append_only solo crean eventos/índices y trigger PostgreSQL; no cambian el ledger. Límites predeterminados: 366 días, 5000 movimientos XLSX/CSV, 500 PDF; 30 vistas y 10 descargas por usuario/60 segundos. Ajustes opcionales en `.env.example`; no son secretos.
+
+Verificación completa de Fase 5:
+
+```powershell
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py check
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py makemigrations --check --dry-run
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py test apps.core apps.users apps.transactions apps.analytics apps.budgets apps.reports apps.audit --settings=config.settings_test_postgres
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py test apps.core apps.users apps.transactions apps.analytics apps.budgets apps.reports apps.audit --settings=config.settings_test
+docker compose -f compose.yaml -f compose.dev.yaml exec -T frontend npm run typecheck
+docker compose -f compose.yaml -f compose.dev.yaml exec -T frontend npm run build
+docker run --rm --ipc=host --env E2E_DOCKER=true --mount type=bind,source="${PWD}/tests/browser",target=/tests --workdir /tests mcr.microsoft.com/playwright/python:v1.56.0-noble sh -c 'pip install -r requirements.txt && python reports_flow.py && python analytics_flow.py && python finance_flow.py && python auth_flow.py'
+```
+
+QA de documentos sintéticos y límites: docs/reportes-auditoria.md. Resultados reales: docs/verificacion.md. Exportaciones síncronas, sin plantillas guardadas, firmas ni bitácora resistente a administradores de base. El commit `918736c` conserva Fases 1–4; no se crea otro commit sin autorización.
+
+## Variables disponibles (referencia completa)
 
 | Variable | Uso / valor predeterminado |
 | --- | --- |
@@ -225,7 +260,7 @@ Parar sin borrar datos: `docker compose down`. El volumen persiste. No usar `dow
 ## Seguridad y siguiente fase
 Las rutas son privadas por defecto. Cookies de sesión y CSRF: HttpOnly, SameSite=Lax; Secure y redirección HTTPS con DEBUG=false. Sesión persistente de 14 días, restaurada desde auth/me/ al recargar. Cambio de contraseña mantiene la sesión actual y hace inválidas las demás al comprobar su hash. Contraseñas mediante hashers/validadores Django; campos sensibles fuera de respuestas y sin registro en logs de aplicación. Docker y runserver son exclusivamente locales.
 
-Pendiente: notificaciones programadas, exportaciones, conciliación y conversión de monedas. Arquitectura, modelo y reglas actuales en docs/arquitectura.md, docs/modelo-datos.md, docs/finanzas.md y docs/analitica-presupuestos.md.
+Pendiente: notificaciones programadas, exportaciones asíncronas, conciliación y conversión de monedas. Arquitectura, modelo y reglas actuales en docs/arquitectura.md, docs/modelo-datos.md, docs/finanzas.md, docs/analitica-presupuestos.md y docs/reportes-auditoria.md.
 
 ## Estado de verificación del entorno inicial
 Ver `docs/verificacion.md` para resultados reales y limitaciones. Tener configuración creada no implica que todos los servicios hayan sido ejecutados.

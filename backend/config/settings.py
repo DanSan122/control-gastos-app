@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     "apps.transactions",
     "apps.budgets",
     "apps.analytics",
+    "apps.audit",
+    "apps.reports",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -95,7 +97,7 @@ REST_FRAMEWORK = {
 }
 CORS_ALLOWED_ORIGINS = env_list("DJANGO_CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = True
-CORS_EXPOSE_HEADERS = ["Retry-After"]
+CORS_EXPOSE_HEADERS = ["Retry-After", "Content-Disposition"]
 from corsheaders.defaults import default_headers
 CORS_ALLOW_HEADERS = [*default_headers, "idempotency-key"]
 CORS_URLS_REGEX = r"^/api/.*$"
@@ -119,3 +121,12 @@ AUTH_PASSWORD_USER_LIMIT = int(os.getenv("AUTH_PASSWORD_USER_LIMIT", "5"))
 if min(AUTH_RATE_WINDOW_SECONDS, AUTH_LOGIN_EMAIL_LIMIT, AUTH_LOGIN_IP_LIMIT,
        AUTH_REGISTER_IP_LIMIT, AUTH_PASSWORD_USER_LIMIT) <= 0:
     raise ImproperlyConfigured("Los límites de autenticación deben ser positivos")
+
+REPORT_MAX_DAYS = int(os.getenv("REPORT_MAX_DAYS", "366"))
+REPORT_EXPORT_ROWS = int(os.getenv("REPORT_EXPORT_ROWS", "5000"))
+REPORT_PDF_ROWS = int(os.getenv("REPORT_PDF_ROWS", "500"))
+REPORT_RATE_SECONDS = int(os.getenv("REPORT_RATE_SECONDS", "60"))
+REPORT_PREVIEW_LIMIT = int(os.getenv("REPORT_PREVIEW_LIMIT", "30"))
+REPORT_EXPORT_LIMIT = int(os.getenv("REPORT_EXPORT_LIMIT", "10"))
+if min(REPORT_MAX_DAYS, REPORT_EXPORT_ROWS, REPORT_PDF_ROWS, REPORT_RATE_SECONDS, REPORT_PREVIEW_LIMIT, REPORT_EXPORT_LIMIT) <= 0:
+    raise ImproperlyConfigured("Los límites de reportes deben ser positivos")

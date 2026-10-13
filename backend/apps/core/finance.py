@@ -35,7 +35,8 @@ class FinancePagination(PageNumberPagination):
 @contextmanager
 def owner_lock(user):
     # Todas las escrituras financieras de un propietario usan el mismo orden de bloqueo.
-    with transaction.atomic():
+    from apps.audit.context import audit_scope
+    with transaction.atomic(), audit_scope(user):
         get_user_model().objects.select_for_update().get(pk=user.pk)
         yield
 

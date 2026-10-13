@@ -18,7 +18,7 @@ export class ApiError extends Error {
 const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '')
 
 export async function request<T>(path: string, options: {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; data?: unknown; signal?: AbortSignal; private?: boolean; headers?: Record<string, string>
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; data?: unknown; signal?: AbortSignal; private?: boolean; headers?: Record<string, string>; responseType?: 'blob'
 } = {}): Promise<T> {
   const method = options.method || 'GET'
   const headers: Record<string, string> = { Accept: 'application/json', ...options.headers }
@@ -39,6 +39,7 @@ export async function request<T>(path: string, options: {
       ...(options.data !== undefined ? { body: JSON.stringify(options.data) } : {}),
     })
     if (response.status === 204) return undefined as T
+    if (response.ok && options.responseType === 'blob') return await response.blob() as T
     const data: unknown = await response.json()
     if (!response.ok) {
       const fields: Record<string, string[]> = {}

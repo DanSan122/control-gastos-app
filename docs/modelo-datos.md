@@ -49,3 +49,7 @@ AUTH_USER_MODEL=users.User se configuró antes de las primeras migraciones. Revi
 # Extensión de Fase 4: Budget
 
 Budget incorpora UUID, owner, area XOR category, limit_amount Decimal(18,2), currency PEN, year, month, created_at, updated_at e is_active. FK PROTECT y CHECK de alcance/importe/fecha; unicidad parcial por propietario y alcance/periodo/moneda, también para inactivos. Consumo y alertas son derivados del ledger POSTED, no columnas persistidas. No cambian modelos de usuario ni movimientos. Ver [analitica-presupuestos.md](analitica-presupuestos.md).
+
+## Fase 5: AuditEvent
+
+UUID, actor User PROTECT, operation, resource_type, resource_id UUID, occurred_at UTC, before/after JSON con allowlist, changed_fields y correlation_id. Índices actor/fecha y actor/recurso/identificador. Append-only desde aplicación y trigger PostgreSQL para UPDATE/DELETE. No FK a recurso financiero, así se conserva identidad genérica. No backfill, datos históricos ni secretos. Reportes no añaden tablas de totales o definiciones guardadas. Ver [reportes-auditoria.md](reportes-auditoria.md).

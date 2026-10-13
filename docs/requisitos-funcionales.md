@@ -29,7 +29,7 @@
 
 ## Fases futuras: propuesta, no implementada
 1. Notificaciones programadas para presupuestos y recurrencia automática.
-2. Exportaciones y reportes avanzados.
+2. Exportaciones asíncronas, plantillas guardadas y firma digital si se solicitan.
 3. Conversión explícita de monedas y precisión por moneda.
 4. Conciliación/importación, recurrencia y auditoría de versiones si se solicitan.
 
@@ -46,3 +46,7 @@ Transferencias, saldo inicial, crédito y eliminación lógica se definieron en 
 # Fase 4 implementada
 
 Dashboard con indicadores, análisis temporal y seis gráficos; filtros hoy/ayer/semana/semana anterior/mes/mes anterior/año/rango personalizado. Presupuestos mensuales por área o categoría, CRUD con desactivación, progreso y alertas visuales 80/100 %. Aislamiento por usuario, dinero Decimal, exclusión de transferencias/anulaciones y pagos de deuda sin gasto duplicado. Contratos, límites y criterio de comparación en [analitica-presupuestos.md](analitica-presupuestos.md).
+
+## Fase 5 implementada
+
+Reportes con filtros combinables y detalle paginado; exportaciones privadas XLSX/CSV/PDF con mismos filtros e importes exactos. Protección de fórmula/CSV y límites atómicos por usuario. Auditoría financiera append-only con snapshots permitidos y correlación, integrada en la misma transacción y sin duplicación en transferencias reintentadas. Historial comienza al activar esta fase; no reconstruye versiones anteriores. Contratos en [reportes-auditoria.md](reportes-auditoria.md).
