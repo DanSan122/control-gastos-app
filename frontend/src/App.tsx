@@ -7,6 +7,9 @@ import Summary from './finance/Summary'
 const AnalyticsPage = lazy(() => import('./analytics/AnalyticsPage'))
 const Budgets = lazy(() => import('./analytics/Budgets'))
 const Reports = lazy(() => import('./reports/Reports'))
+const Rules = lazy(() => import('./recurring/pages').then((m) => ({ default: m.Rules })))
+const RuleForm = lazy(() => import('./recurring/pages').then((m) => ({ default: m.RuleForm })))
+const RuleDetail = lazy(() => import('./recurring/pages').then((m) => ({ default: m.RuleDetail })))
 import AuditHistory from './reports/AuditHistory'
 import Accounts from './finance/Accounts'
 import Classifications from './finance/Classifications'
@@ -46,6 +49,7 @@ export default function App() {
       <Route path="/dashboard" element={<AnalyticsPage key="dashboard" />} /><Route path="/analisis" element={<AnalyticsPage key="analysis" mode="analysis" />} /><Route path="/comparacion" element={<AnalyticsPage key="comparison" mode="comparison" />} /><Route path="/presupuestos" element={<Budgets />} /><Route path="/perfil" element={<Profile />} /><Route path="/seguridad" element={<Security />} />
       <Route path="/cuentas" element={<Accounts />} /><Route path="/clasificaciones" element={<Classifications />} />
       <Route path="/reportes" element={<Reports />} /><Route path="/auditoria" element={<AuditHistory />} />
+      <Route path="/recurrentes" element={<Rules />} /><Route path="/recurrentes/nueva" element={<RuleForm key="new-rule" />} /><Route path="/recurrentes/:id" element={<RuleDetail />} /><Route path="/recurrentes/:id/editar" element={<RuleForm key="edit-rule" />} />
       <Route path="/gastos/nuevo" element={<MovementForm key="expense" kind="EXPENSE" />} /><Route path="/ingresos/nuevo" element={<MovementForm key="income" kind="INCOME" />} />
       <Route path="/transferir" element={<MovementForm key="transfer" kind="TRANSFER" />} /><Route path="/movimientos" element={<History />} />
       <Route path="/movimientos/:id" element={<MovementDetail />} /><Route path="/resumen" element={<Summary />} />

@@ -53,3 +53,7 @@ Budget incorpora UUID, owner, area XOR category, limit_amount Decimal(18,2), cur
 ## Fase 5: AuditEvent
 
 UUID, actor User PROTECT, operation, resource_type, resource_id UUID, occurred_at UTC, before/after JSON con allowlist, changed_fields y correlation_id. Índices actor/fecha y actor/recurso/identificador. Append-only desde aplicación y trigger PostgreSQL para UPDATE/DELETE. No FK a recurso financiero, así se conserva identidad genérica. No backfill, datos históricos ni secretos. Reportes no añaden tablas de totales o definiciones guardadas. Ver [reportes-auditoria.md](reportes-auditoria.md).
+
+## Fase 6: RecurringRule y RecurringExecution
+
+Regla: UUID, owner, plantilla financiera Decimal/PEN con FK PROTECT, frecuencia/intervalo, inicio/fin/cursor como DATE local, timezone fijada, modo y estado. Ejecución: UUID, rule PROTECT, scheduled_date, status, Transaction OneToOne PROTECT opcional, intento/ejecución UTC y código de error seguro. Unicidad rule/date y CHECK de estado/cursor, importes y forma; índices por propietario y vencimiento. No se duplican movimientos ni persisten saldos programados. Opciones de AuditEvent amplían pausa/reanudación/cancelación/ejecución/omisión sin cambiar eventos previos. Ver [recurrencias.md](recurrencias.md).

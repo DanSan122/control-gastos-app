@@ -1,4 +1,27 @@
-# Verificación — Fases 1–5
+# Verificación — Fases 1–6
+
+## Fase 6: movimientos recurrentes
+
+Fecha: 13 de octubre de 2026, America/Lima. Trabajo en `feature/fase-6-recurrencias`, desde `ec316d3`; sin commits, push ni cambios en main.
+
+| Comprobación | Resultado real |
+| --- | --- |
+| Migraciones revisadas y aplicadas | recurring/0001_initial y audit/0003_alter_auditevent_operation; sin borrar datos ni volúmenes |
+| Preservación al migrar | Antes/después: 17 usuarios, 22 cuentas, 23 movimientos, 3 presupuestos y 24 eventos de auditoría |
+| Suite completa PostgreSQL | 126 tests OK, sin omisiones, 160.785 s; conserva las 97 pruebas anteriores y añade 29 de recurrencia |
+| Suite completa SQLite | 126 tests OK, skipped=6, 146.287 s; omite tres concurrencias, dos casos NUMERIC extremos y el trigger exclusivo de PostgreSQL |
+| Cobertura nueva | Calendario y anclas, zona horaria, precisión, relaciones, CSRF, aislamiento, confirmación/omisión, ejecución automática, reintentos, fallos, rollback, concurrencia, saldos/presupuestos y consultas del listado sin N+1 |
+| Chromium | recurring_flow.py, auth_flow.py, finance_flow.py, analytics_flow.py y reports_flow.py ejecutados: OK |
+| Automatización real | Worker periódico ejecutando cada 30 segundos; el flujo nuevo cierra la página, espera y verifica un ingreso automático único de S/ 80.25 al regresar |
+| Visual | Captura móvil de recurrencias inspeccionada; prueba de ancho sin desbordamiento y estados de ejecución/paginación |
+| Frontend final | npm run typecheck y npm run build OK; Vite procesó 657 módulos sin advertencias |
+| Configuración final | Django check sin incidencias; makemigrations --check --dry-run: No changes detected; backend y worker reconstruidos y arrancados con el código final |
+
+Los comandos reproducibles están en README y las decisiones, modelos y endpoints en [recurrencias.md](recurrencias.md). Las pruebas usan bases separadas; los flujos de navegador conservan sus cuentas sintéticas y capturas ignoradas. No se instalaron dependencias globales ni se modificaron los locks.
+
+Problemas resueltos durante la verificación: el test de cancelación necesitaba esperar la respuesta CSRF/DELETE antes de comprobar el estado; la comprobación móvil necesitaba esperar el redimensionado de Recharts. Ambos flujos se repitieron correctamente sin ocultar el desbordamiento mediante CSS. El listado carga cuentas y clasificaciones con select_related y tiene una regresión de número de consultas.
+
+Limitaciones: solo PEN y registro contable interno, sin pagos bancarios. Los próximos movimientos muestran una ocurrencia por regla, incluidos atrasados; no son un pronóstico completo del periodo. AUTO necesita mantener activo el perfil Docker recurring; los fallos se reintentan con espera mínima de 60 segundos. Las reglas conservan su zona horaria original y el calendario se bloquea tras un intento u omisión. Las ejecuciones pendientes no alteran saldos, reportes ni presupuestos.
 
 ## Fase 5: resultado final
 

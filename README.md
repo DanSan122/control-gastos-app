@@ -1,6 +1,6 @@
 # ControlGastos
 
-Aplicación multiusuario con Fases 1–5 implementadas: autenticación por sesiones, gestión financiera, dashboard, presupuestos mensuales, reportes XLSX/CSV/PDF y auditoría atómica en PEN. React + TypeScript + Vite + Tailwind + Recharts; Django 5.2 LTS + DRF; PostgreSQL 17. Otras monedas y notificaciones quedan para fases posteriores.
+Aplicación multiusuario con Fases 1–6 implementadas: sesiones, finanzas, dashboard, presupuestos PEN, reportes XLSX/CSV/PDF, auditoría y movimientos recurrentes manuales/automáticos. React + TypeScript + Vite + Tailwind + Recharts; Django 5.2 LTS + DRF; PostgreSQL 17. Otras monedas y notificaciones quedan para fases posteriores.
 
 ## Requisitos
 - Python 3.11+ con pip y venv (recomendado Python oficial para Windows).
@@ -20,6 +20,7 @@ backend/apps/analytics/ Agregaciones, evolución, distribución y comparación
 backend/apps/budgets/ Presupuestos mensuales, progreso y alertas derivadas
 backend/apps/reports/ Reportes filtrados, límites, XLSX/CSV/PDF
 backend/apps/audit/ Eventos append-only y protección PostgreSQL
+backend/apps/recurring/ Reglas, calendario, ocurrencias y scheduler idempotente
 backend/scripts/   Comprobación de conexión real y de solo lectura
 tests/browser/     Flujo E2E Chromium y capturas locales ignoradas
 docs/              Arquitectura, requisitos y modelo propuesto
@@ -202,7 +203,42 @@ docker run --rm --ipc=host --env E2E_DOCKER=true --mount type=bind,source="${PWD
 
 QA de documentos sintéticos y límites: docs/reportes-auditoria.md. Resultados reales: docs/verificacion.md. Exportaciones síncronas, sin plantillas guardadas, firmas ni bitácora resistente a administradores de base. El commit `918736c` conserva Fases 1–4; no se crea otro commit sin autorización.
 
-## Variables disponibles (referencia completa)
+## Fase 6: movimientos recurrentes y programación
+
+Abrir `/recurrentes`: reglas de ingresos/gastos/transferencias, próximos vencimientos, confirmación/omisión, edición, pausa/reanudación/cancelación e historial con enlaces al movimiento real. El dashboard muestra próximos aparte de saldos y presupuestos. Crear regla no registra dinero. Documentación completa: [docs/recurrencias.md](docs/recurrencias.md).
+
+API privada bajo `/api/v1/`: `recurring/rules/`, `recurring/rules/{uuid}/`, acciones POST `pause/` y `resume/`; GET `recurring/upcoming/`, `recurring/executions/`, `recurring/executions/{uuid}/`; acciones POST `confirm/` y `skip/`. DELETE cancela lógicamente. Sesiones/CSRF, filtros/paginación y propiedad estricta. Dinero como cadenas; PEN. Primer intento/omisión bloquea frecuencia e intervalo; inicio/tipo no cambian tras crear. Zona horaria fijada al crear la regla.
+
+Calendarios diarios/semanales/mensuales/anuales, intervalos y fin inclusivo. Día 31 se ajusta a febrero y vuelve al 31 en marzo; no deriva. Movimiento efectivo al inicio válido del día local, almacenado UTC. Sin selector de hora ni movimientos futuros; no se envían pagos externos. Clave determinista por regla/fecha, owner_lock y restricciones PostgreSQL evitan duplicados. Auditoría financiera/ocurrencia/cursor se confirma o revierte de forma conjunta.
+
+Actualizar desde Fase 5 conservando datos:
+
+```powershell
+docker compose -f compose.yaml -f compose.dev.yaml build backend
+docker compose -f compose.yaml -f compose.dev.yaml up -d backend frontend
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py migrate --plan
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py migrate --noinput
+docker compose -f compose.yaml -f compose.dev.yaml --profile recurring up -d --build recurring-worker
+docker compose -f compose.yaml -f compose.dev.yaml logs --tail 20 recurring-worker
+```
+
+Worker de desarrollo real cada 30 segundos, optativo en perfil recurring; no cambia producción ni necesita navegador. Iniciarlo después de migrar. Pararlo sin borrar datos: `docker compose -f compose.yaml -f compose.dev.yaml stop recurring-worker`. Comando puntual: `docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py process_recurring --limit 100 --per-rule 100`. Ejecutar solo ese comando manual no activa una automatización. No se añaden dependencias ni variables privadas nuevas.
+
+Verificación completa, incluidas las 97 pruebas previas:
+
+```powershell
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py check
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py makemigrations --check --dry-run
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py test apps.core apps.users apps.transactions apps.analytics apps.budgets apps.reports apps.audit apps.recurring --settings=config.settings_test_postgres
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py test apps.core apps.users apps.transactions apps.analytics apps.budgets apps.reports apps.audit apps.recurring --settings=config.settings_test
+docker compose -f compose.yaml -f compose.dev.yaml exec -T frontend npm run typecheck
+docker compose -f compose.yaml -f compose.dev.yaml exec -T frontend npm run build
+docker run --rm --ipc=host --env E2E_DOCKER=true --mount type=bind,source="${PWD}/tests/browser",target=/tests --workdir /tests mcr.microsoft.com/playwright/python:v1.56.0-noble sh -c 'pip install -r requirements.txt && python recurring_flow.py && python auth_flow.py && python finance_flow.py && python analytics_flow.py && python reports_flow.py'
+```
+
+E2E requiere el worker activo: verifica automatización mientras no hay página abierta, conserva cuentas sintéticas y capturas ignoradas. Resultados reales en docs/verificacion.md. Esta fase se trabaja exclusivamente en feature/fase-6-recurrencias; no hace commits, push ni merge sin autorización.
+
+## Variables disponibles (configuración)
 
 | Variable | Uso / valor predeterminado |
 | --- | --- |

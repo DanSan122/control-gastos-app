@@ -4,6 +4,7 @@ const links = [
   ['/dashboard', 'Inicio'], ['/cuentas', 'Mis cuentas'], ['/clasificaciones', 'Áreas y categorías'],
   ['/analisis', 'Análisis de gastos'], ['/comparacion', 'Comparar periodos'], ['/presupuestos', 'Presupuestos'],
   ['/reportes', 'Reportes'], ['/auditoria', 'Auditoría'],
+  ['/recurrentes', 'Movimientos recurrentes'],
   ['/gastos/nuevo', 'Registrar gasto'], ['/ingresos/nuevo', 'Registrar ingreso'], ['/transferir', 'Transferir dinero'],
   ['/movimientos', 'Historial'], ['/resumen', 'Resumen financiero'], ['/perfil', 'Mi perfil'], ['/seguridad', 'Seguridad'],
 ]

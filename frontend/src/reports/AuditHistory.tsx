@@ -5,8 +5,8 @@ import { finance } from '../finance/api'
 import { LoadState, PageHeader, Select, useResource } from '../finance/ui'
 import type { AuditEvent } from './api'
 
-const resourceNames: Record<string, string> = { 'accounts.account': 'Cuenta', 'categories.area': 'Área', 'categories.category': 'Categoría', 'categories.subcategory': 'Subcategoría', 'transactions.transaction': 'Movimiento', 'budgets.budget': 'Presupuesto' }
-const operationNames: Record<string, string> = { CREATE: 'Creación', UPDATE: 'Edición', VOID: 'Anulación', DEACTIVATE: 'Desactivación' }
+const resourceNames: Record<string, string> = { 'accounts.account': 'Cuenta', 'categories.area': 'Área', 'categories.category': 'Categoría', 'categories.subcategory': 'Subcategoría', 'transactions.transaction': 'Movimiento', 'budgets.budget': 'Presupuesto', 'recurring.recurringrule': 'Regla recurrente', 'recurring.recurringexecution': 'Ocurrencia' }
+const operationNames: Record<string, string> = { CREATE: 'Creación', UPDATE: 'Edición', VOID: 'Anulación', DEACTIVATE: 'Desactivación', PAUSE: 'Pausa', RESUME: 'Reanudación', CANCEL: 'Cancelación', EXECUTE: 'Ejecución', SKIP: 'Omisión' }
 export default function AuditHistory({ resourceId, revision = 0 }: { resourceId?: string; revision?: number }) {
   const { user } = useAuth()
   const [resource, setResource] = useState(resourceId ? 'transactions.transaction' : '')
