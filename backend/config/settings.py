@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "apps.analytics",
     "apps.audit",
     "apps.reports",
+    "apps.recurring",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

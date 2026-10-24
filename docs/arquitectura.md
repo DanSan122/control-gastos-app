@@ -1,4 +1,4 @@
-# Arquitectura — Fases 1–5
+# Arquitectura — Fases 1–6
 
 ControlGastos es un monorepo con frontend React/TypeScript y API Django REST Framework independientes. PostgreSQL 17 se ejecuta mediante Docker Compose; frontend y backend se ejecutan en el host en desarrollo.
 
@@ -46,3 +46,7 @@ Referencias técnicas: [Django settings](https://docs.djangoproject.com/en/5.2/r
 ## Extensión de Fase 5
 
 apps.reports comparte filtered_transactions con el historial y totals/distribution/evolution con analytics. Materializa el snapshot bajo owner_lock y renderiza exportaciones en memoria fuera del bloqueo. apps.audit registra señales acotadas al contexto financiero, dentro de atomic; Model/QuerySet y trigger PostgreSQL conservan append-only. El catálogo inicial y la seguridad de usuarios no se auditan. React reutiliza cliente centralizado con descargas Blob y componentes de auditoría en la página y en el detalle. Contratos y límites en [reportes-auditoria.md](reportes-auditoria.md).
+
+## Extensión de Fase 6
+
+apps.recurring prepara ocurrencias sin afectar el ledger. Confirmación y scheduler usan el nuevo servicio compartido transactions.creation.create_movement (mismo TransactionSerializer), owner_lock, savepoints y auditoría existente. El scheduler optativo de desarrollo procesa vencidos cada 30 segundos, sin Celery/Redis. Unicidad regla/fecha y UUIDv5 evitan reintentos duplicados. Calendario y zona fijados separados de los instantes UTC del movimiento. No se agregan programados a los agregados financieros existentes. Contratos en [recurrencias.md](recurrencias.md).

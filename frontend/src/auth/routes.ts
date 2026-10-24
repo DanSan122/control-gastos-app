@@ -1,4 +1,4 @@
 const destinations = ['/dashboard', '/reportes', '/auditoria', '/analisis', '/comparacion', '/presupuestos', '/perfil', '/seguridad', '/cuentas', '/clasificaciones', '/gastos/nuevo', '/ingresos/nuevo', '/transferir', '/movimientos', '/resumen']
 export function privateDestination(value: string | undefined) {
-  return value && (destinations.includes(value) || /^\/movimientos\/[0-9a-f-]{36}$/i.test(value)) ? value : '/dashboard'
+  return value && (destinations.includes(value) || value === '/recurrentes' || value === '/recurrentes/nueva' || /^\/recurrentes\/[0-9a-f-]{36}(\/editar)?$/i.test(value) || /^\/movimientos\/[0-9a-f-]{36}$/i.test(value)) ? value : '/dashboard'
 }

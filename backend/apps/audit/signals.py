@@ -1,4 +1,4 @@
-from datetime import datetime, timezone as utc_timezone
+from datetime import date, datetime, timezone as utc_timezone
 from decimal import Decimal
 from uuid import UUID
 from django.db.models.signals import pre_save, post_save
@@ -7,6 +7,35 @@ from .context import current_actor
 from .models import AuditEvent
 
 FIELDS = {
+    "recurring.recurringrule": (
+        "name",
+        "kind",
+        "amount",
+        "currency",
+        "source_account_id",
+        "destination_account_id",
+        "area_id",
+        "category_id",
+        "subcategory_id",
+        "payment_method",
+        "frequency",
+        "interval",
+        "start_date",
+        "end_date",
+        "next_due_date",
+        "timezone",
+        "execution_mode",
+        "status",
+    ),
+    "recurring.recurringexecution": (
+        "rule_id",
+        "scheduled_date",
+        "status",
+        "transaction_id",
+        "attempted_at",
+        "executed_at",
+        "error_code",
+    ),
     "accounts.account": (
         "name",
         "kind",
@@ -53,6 +82,8 @@ def normalized(value):
         return str(value)
     if isinstance(value, datetime):
         return value.astimezone(utc_timezone.utc).isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
     return value
 
 
@@ -121,6 +152,18 @@ def record(sender, instance, created, raw=False, **kwargs):
             )
         )
     )
+    if (
+        not created
+        and label.startswith("recurring.")
+        and before.get("status") != after.get("status")
+    ):
+        operation = {
+            "PAUSED": "PAUSE",
+            "CANCELLED": "CANCEL",
+            "ACTIVE": "RESUME",
+            "EXECUTED": "EXECUTE",
+            "SKIPPED": "SKIP",
+        }.get(after.get("status"), "UPDATE")
     AuditEvent.objects.create(
         actor=actor[0],
         operation=operation,

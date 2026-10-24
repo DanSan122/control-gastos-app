@@ -25,7 +25,7 @@ class AuditEvent(models.Model):
     )
     operation = models.CharField(
         max_length=12,
-        choices=[(s, s) for s in ("CREATE", "UPDATE", "VOID", "DEACTIVATE")],
+        choices=[(s, s) for s in ("CREATE", "UPDATE", "VOID", "DEACTIVATE", "PAUSE", "RESUME", "CANCEL", "EXECUTE", "SKIP")],
     )
     resource_type = models.CharField(max_length=32)
     resource_id = models.UUIDField()

@@ -12,6 +12,7 @@ from apps.users.authentication import CSRFSafeSessionAuthentication
 from .models import Transaction
 from .filters import filtered_transactions
 from .serializers import TransactionSerializer
+from .creation import create_movement
 
 
 class Conflict(APIException):
@@ -38,10 +39,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
         if request.data.get("kind") == "TRANSFER":
             raise ValidationError({"kind": "Usa POST /transfers/ con Idempotency-Key."})
         with owner_lock(request.user):
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save(owner=request.user)
-            return Response(serializer.data, status=201)
+            movement = create_movement(request.user, request.data, request=request)
+            return Response(self.get_serializer(movement).data, status=201)
 
     def partial_update(self, request, *args, **kwargs):
         with owner_lock(request.user):
@@ -77,7 +76,5 @@ class TransferView(APIView):
             if "kind" in payload and payload["kind"] != "TRANSFER":
                 raise ValidationError({"kind": "Debe ser TRANSFER."})
             payload["kind"] = "TRANSFER"
-            serializer = TransactionSerializer(data=payload, context={"request": request})
-            serializer.is_valid(raise_exception=True)
-            serializer.save(owner=request.user, idempotency_key=key, request_hash=fingerprint)
-            return Response(serializer.data, status=201)
+            movement = create_movement(request.user, payload, request=request, idempotency_key=key, request_hash=fingerprint)
+            return Response(TransactionSerializer(movement, context={"request": request}).data, status=201)

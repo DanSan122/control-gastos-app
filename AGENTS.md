@@ -1,7 +1,7 @@
 # Convenciones de ControlGastos
 
 ## Alcance y estructura
-- Fases 1–5: infraestructura, usuarios, autenticación, finanzas, analítica, presupuestos PEN, reportes/exportaciones y auditoría. Otras monedas y notificaciones requieren nuevas tareas.
+- Fases 1–6: infraestructura, usuarios, finanzas, analítica, presupuestos PEN, reportes, auditoría y recurrencias. Otras monedas, notificaciones y pagos bancarios externos requieren nuevas tareas.
 - Frontend en `frontend/`; backend en `backend/`; decisiones y requisitos en `docs/`.
 - API bajo `/api/v1/`. Apps Django por dominio bajo `backend/apps/`; componentes React por funcionalidad cuando comience su implementación.
 - Inspeccionar archivos existentes antes de modificarlos. Mantener cambios acotados y documentar decisiones relevantes.
@@ -33,6 +33,8 @@
 - Catálogo inicial mediante seed_catalog idempotente; preservar seed_code estable, renombrados y estados. Revisar docs/finanzas.md al cambiar reglas.
 
 ## Verificación
+- Recurrencias: consultar docs/recurrencias.md. Todas las creaciones de Transaction pasan por create_movement bajo owner_lock. Unicidad regla/fecha, UUIDv5 determinista y enlace único al movimiento; no reejecutar una ocurrencia EXECUTED/VOID o SKIPPED. Calendario local anclado al inicio, zona fijada, nunca movimiento futuro.
+- Añadir apps.recurring a las suites de ocho apps anteriores y ejecutar recurring_flow.py junto con los cuatro flujos previos. El E2E automático exige recurring-worker real activo y comprueba ejecución con página cerrada. Aplicar migraciones antes de iniciar el worker optativo de desarrollo; no configurar scheduler de producción sin autorización.
 - Auditoría: todas las escrituras siguen owner_lock + save; no bulk/update directo en modelos financieros. Eventos atómicos, append-only; no auditar secretos, description/reference/institution. Consultar docs/reportes-auditoria.md. No recrear eventos previos a activación.
 - Reportes: reutilizar filtros/agregaciones; límites de rango/volumen y throttles atómicos. Texto literal en XLSX, protección de fórmulas CSV y escape Paragraph PDF. Importes Excel como texto exacto, no float. Renderizar y revisar páginas tras cambios de PDF.
 - Añadir apps.reports y apps.audit a las suites anteriores; ejecutar tests/browser/reports_flow.py y conservar regresiones. QA sintético con scripts/report_artifact_qa.py y tests/browser/render_report_qa.py, archivos solo bajo artifacts ignorado.
