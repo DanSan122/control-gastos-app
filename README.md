@@ -1,6 +1,37 @@
 # ControlGastos
 
-Aplicación multiusuario con Fases 1–6 implementadas: sesiones, finanzas, dashboard, presupuestos PEN, reportes XLSX/CSV/PDF, auditoría y movimientos recurrentes manuales/automáticos. React + TypeScript + Vite + Tailwind + Recharts; Django 5.2 LTS + DRF; PostgreSQL 17. Otras monedas y notificaciones quedan para fases posteriores.
+Aplicación multiusuario con espacios personales y familiares: sesiones, finanzas, dashboard, presupuestos PEN, reportes XLSX/CSV/PDF, auditoría y movimientos recurrentes personales. React + TypeScript + Vite + Tailwind + Recharts; Django 5.2 LTS + DRF; PostgreSQL 17. Otras monedas y notificaciones quedan para fases posteriores.
+
+## Fase 7: espacios familiares
+
+Contrato y matriz de permisos en [docs/familias.md](docs/familias.md); resultados de pruebas en [docs/verificacion.md](docs/verificacion.md). Las cuentas y movimientos anteriores siguen siendo personales. No hay aportes automáticos entre espacios ni recurrencias familiares.
+
+Para actualizar una instalación de Fase 6, conservar sus `.env` y volumen:
+
+```powershell
+docker compose -f compose.yaml -f compose.dev.yaml stop backend recurring-worker
+docker compose -f compose.yaml -f compose.dev.yaml run --rm backend python scripts/verify_family_migration.py before
+docker compose -f compose.yaml -f compose.dev.yaml run --rm backend python manage.py migrate --plan
+docker compose -f compose.yaml -f compose.dev.yaml run --rm backend python manage.py migrate
+docker compose -f compose.yaml -f compose.dev.yaml run --rm backend python scripts/verify_family_migration.py after
+docker compose -f compose.yaml -f compose.dev.yaml up -d backend frontend
+docker compose -f compose.yaml -f compose.dev.yaml --profile recurring up -d recurring-worker
+```
+
+Abrir http://localhost:5173/familias. A crea una familia e invita por correo a B, que ya debe estar registrado. B acepta en `/familias/invitaciones`; ambos pueden consultar y registrar movimientos familiares. C, ajeno, no puede consultar ese espacio. A puede retirar a B; los datos históricos permanecen y B pierde acceso. Usar exclusivamente cuentas sintéticas en QA. El selector visible permite volver al espacio personal sin cerrar sesión. Registro de usuarios existente conservado; propuesta de aprovisionamiento restringido en docs/familias.md.
+
+Pruebas completas (bases temporales):
+
+```powershell
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py test apps.core apps.users apps.transactions apps.analytics apps.budgets apps.reports apps.audit apps.recurring apps.families --settings=config.settings_test_postgres
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py test apps.core apps.users apps.transactions apps.analytics apps.budgets apps.reports apps.audit apps.recurring apps.families --settings=config.settings_test
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py check
+docker compose -f compose.yaml -f compose.dev.yaml exec -T backend python manage.py makemigrations --check --dry-run
+docker compose -f compose.yaml -f compose.dev.yaml exec -T frontend npm run typecheck
+docker compose -f compose.yaml -f compose.dev.yaml exec -T frontend npm run build
+```
+
+Navegador: añadir `python families_flow.py` a la ejecución Docker/Playwright documentada más abajo y conservar los otros cinco scripts, incluido recurring_flow.py con el worker activo. Las capturas, exportaciones y huellas de migración quedan ignoradas; no se guardan contraseñas de QA.
 
 ## Requisitos
 - Python 3.11+ con pip y venv (recomendado Python oficial para Windows).

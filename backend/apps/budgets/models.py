@@ -6,6 +6,7 @@ from django.db.models import Q
 
 class Budget(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    family = models.ForeignKey("families.Family", null=True, blank=True, on_delete=models.PROTECT)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     area = models.ForeignKey("categories.Area", null=True, blank=True, on_delete=models.PROTECT)
     category = models.ForeignKey("categories.Category", null=True, blank=True, on_delete=models.PROTECT)
@@ -18,11 +19,14 @@ class Budget(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
+        indexes = [models.Index(fields=["family", "year", "month"])]
         constraints = [
             models.CheckConstraint(condition=(Q(area__isnull=False, category__isnull=True) | Q(area__isnull=True, category__isnull=False)), name="budget_one_scope"),
             models.CheckConstraint(condition=Q(limit_amount__gt=0), name="budget_positive_limit"),
             models.CheckConstraint(condition=Q(month__gte=1, month__lte=12, year__gte=1900, year__lte=9998), name="budget_valid_month"),
             models.CheckConstraint(condition=Q(currency="PEN"), name="budget_pen_currency"),
-            models.UniqueConstraint(fields=["owner", "area", "year", "month", "currency"], condition=Q(area__isnull=False), name="budget_unique_area"),
-            models.UniqueConstraint(fields=["owner", "category", "year", "month", "currency"], condition=Q(category__isnull=False), name="budget_unique_category"),
+            models.UniqueConstraint(fields=["owner", "area", "year", "month", "currency"], condition=Q(family__isnull=True) & Q(area__isnull=False), name="budget_unique_area"),
+            models.UniqueConstraint(fields=["family", "area", "year", "month", "currency"], condition=Q(family__isnull=False) & Q(area__isnull=False), name="fam_budget_unique_area"),
+            models.UniqueConstraint(fields=["owner", "category", "year", "month", "currency"], condition=Q(family__isnull=True) & Q(category__isnull=False), name="budget_unique_category"),
+            models.UniqueConstraint(fields=["family", "category", "year", "month", "currency"], condition=Q(family__isnull=False) & Q(category__isnull=False), name="fam_budget_unique_category"),
         ]

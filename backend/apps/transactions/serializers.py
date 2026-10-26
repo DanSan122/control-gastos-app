@@ -23,6 +23,12 @@ class AwareDateTimeField(serializers.DateTimeField):
 
 
 class TransactionSerializer(OwnedSerializer):
+    registered_by = serializers.UUIDField(source="owner_id", read_only=True)
+    registered_by_name = serializers.SerializerMethodField()
+
+    def get_registered_by_name(self, obj):
+        return obj.owner.get_full_name() or "Integrante"
+
     amount = MoneyField(min_value=Decimal("0.01"))
     account = ReferenceField()
     destination_account = ReferenceField(required=False, allow_null=True)
@@ -38,7 +44,7 @@ class TransactionSerializer(OwnedSerializer):
 
     class Meta:
         model = Transaction
-        fields = ["id", "account", "account_name", "destination_account", "destination_name", "kind", "amount", "currency", "area", "area_name", "category", "category_name", "subcategory", "subcategory_name", "description", "occurred_at", "created_at", "updated_at", "payment_method", "reference", "status"]
+        fields = ["registered_by", "registered_by_name", "id", "account", "account_name", "destination_account", "destination_name", "kind", "amount", "currency", "area", "area_name", "category", "category_name", "subcategory", "subcategory_name", "description", "occurred_at", "created_at", "updated_at", "payment_method", "reference", "status"]
         read_only_fields = ["id", "created_at", "updated_at", "status"]
         validators = []
 

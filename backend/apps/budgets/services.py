@@ -1,3 +1,4 @@
+from apps.core.scope import scoped, scope_timezone
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 from zoneinfo import ZoneInfo
@@ -18,9 +19,9 @@ def progress_for(budgets, user):
     budgets = list(budgets)
     if not budgets:
         return {}
-    zone = ZoneInfo(user.timezone)
+    zone = ZoneInfo(scope_timezone(user))
     bounds = [month_bounds(b.year, b.month, zone) for b in budgets]
-    rows = Transaction.objects.filter(owner=user, currency="PEN", status="POSTED", kind="EXPENSE", occurred_at__gte=min(x[0] for x in bounds), occurred_at__lt=max(x[1] for x in bounds))
+    rows = scoped(Transaction.objects, user).filter(currency="PEN", status="POSTED", kind="EXPENSE", occurred_at__gte=min(x[0] for x in bounds), occurred_at__lt=max(x[1] for x in bounds))
     totals = {}
     for scope in ("area", "category"):
         ids = {getattr(b, f"{scope}_id") for b in budgets} - {None}

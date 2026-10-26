@@ -12,7 +12,7 @@ reader = PdfReader(source)
 assert len(reader.pages) >= 4
 text = "\n".join(page.extract_text() for page in reader.pages)
 assert "49382.40" in text
-assert "Referencia de prueba 40" in text
+assert "Referencia de prueba 40" in " ".join(text.split())
 document = pymupdf.open(source)
 for page in document:
     page_text = page.get_text()

@@ -5,6 +5,7 @@ from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from .context import current_actor
 from .models import AuditEvent
+from apps.core.scope import current_family
 
 FIELDS = {
     "recurring.recurringrule": (
@@ -102,7 +103,8 @@ def prepare(sender, instance, raw=False, **kwargs):
         raw
         or label not in FIELDS
         or not actor
-        or instance.owner_id != actor[0].pk
+        or (getattr(instance, "family_id", None) != getattr(current_family.get(), "pk", None))
+        or (not current_family.get() and instance.owner_id != actor[0].pk)
     ):
         return
     previous = (
@@ -165,6 +167,7 @@ def record(sender, instance, created, raw=False, **kwargs):
             "SKIPPED": "SKIP",
         }.get(after.get("status"), "UPDATE")
     AuditEvent.objects.create(
+        family=current_family.get(),
         actor=actor[0],
         operation=operation,
         resource_type=label,

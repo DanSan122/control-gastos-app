@@ -1,3 +1,4 @@
+from apps.core.scope import scoped, scope_timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -9,7 +10,7 @@ class ClassificationSerializer(OwnedSerializer):
     def validate(self, attrs):
         model = self.Meta.model
         owner = self.context["request"].user
-        query = model.objects.filter(owner=owner, name__iexact=attrs.get("name", getattr(self.instance, "name", "")))
+        query = scoped(model.objects, owner).filter(name__iexact=attrs.get("name", getattr(self.instance, "name", "")))
         relation = "area" if model == Category else "category" if model == Subcategory else None
         if relation:
             parent_id = attrs.get(relation, getattr(self.instance, f"{relation}_id", None))

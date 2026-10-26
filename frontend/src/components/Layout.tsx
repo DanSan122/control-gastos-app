@@ -1,5 +1,7 @@
+import { PersonalScope } from '../families/Scope'
+import { SpaceSelector } from '../families/pages'
 import { useState } from 'react'
-import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { api } from '../lib/api'
 import Sidebar from './Sidebar'
@@ -29,6 +31,7 @@ export function AuthLayout() {
   </main>
 }
 export function AppLayout() {
+  const location = useLocation()
   const { user, setUser } = useAuth()
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
@@ -46,6 +49,7 @@ export function AppLayout() {
           <button className="button-secondary" onClick={signOut} disabled={busy}>{busy ? 'Cerrando…' : 'Cerrar sesión'}</button></div>
       </div>
     </header>
-    <div className="mx-auto flex max-w-[1600px] flex-col lg:flex-row"><Sidebar /><main className="min-w-0 flex-1 px-5 py-8 sm:px-8">{error ? <p role="alert" className="mb-6 rounded-lg bg-red-50 p-4 text-red-800">{error}</p> : null}<Outlet /></main></div>
+    <SpaceSelector />
+    <div className="mx-auto flex max-w-[1600px] flex-col lg:flex-row"><Sidebar /><main className="min-w-0 flex-1 px-5 py-8 sm:px-8">{error ? <p role="alert" className="mb-6 rounded-lg bg-red-50 p-4 text-red-800">{error}</p> : null}<PersonalScope key={location.pathname}><Outlet /></PersonalScope></main></div>
   </div>
 }

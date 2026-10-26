@@ -1,3 +1,4 @@
+from apps.core.scope import current_family
 from uuid import UUID
 from datetime import timezone
 from rest_framework import serializers, viewsets
@@ -44,10 +45,11 @@ class AuditViewSet(viewsets.ReadOnlyModelViewSet):
         return response
 
     def get_queryset(self):
-        rows = AuditEvent.objects.filter(actor=self.request.user)
+        family = current_family.get()
+        rows = AuditEvent.objects.filter(family=family) if family else AuditEvent.objects.filter(actor=self.request.user, family__isnull=True)
         params = self.request.query_params
         if params.get("resource_type"):
-            if params["resource_type"] not in FIELDS:
+            if params["resource_type"] not in {*FIELDS, "families.family", "families.familymembership", "families.familyinvitation"}:
                 raise ValidationError({"resource_type": "Recurso inválido."})
             rows = rows.filter(resource_type=params["resource_type"])
         if params.get("resource_id"):

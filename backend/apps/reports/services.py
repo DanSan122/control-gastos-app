@@ -1,3 +1,4 @@
+from apps.core.scope import scoped, scope_timezone
 from uuid import UUID
 from zoneinfo import ZoneInfo
 from django.conf import settings
@@ -11,6 +12,7 @@ from apps.transactions.periods import period_bounds
 from apps.transactions.reports import money
 
 ALLOWED_PARAMS = {
+    "registered_by",
     "period",
     "start",
     "end",
@@ -54,7 +56,7 @@ def report_query(user, params):
                 identifier = UUID(params[field])
             except ValueError:
                 raise ValidationError({field: "UUID inválido."})
-            if not model.objects.filter(owner=user, pk=identifier).exists():
+            if not scoped(model.objects, user).filter(pk=identifier).exists():
                 raise ValidationError(
                     {field: "El recurso no existe o no te pertenece."}
                 )
@@ -80,7 +82,7 @@ def summary(rows, start, end, granularity, user, params):
     values = totals(posted)
     return {
         "currency": "PEN",
-        "timezone": user.timezone,
+        "timezone": scope_timezone(user),
         "start": start.isoformat(),
         "end_exclusive": end.isoformat(),
         "generated_at": timezone.now().isoformat(),
@@ -93,7 +95,7 @@ def summary(rows, start, end, granularity, user, params):
         "areas": distribution(posted, "area"),
         "categories": distribution(posted, "category"),
         "evolution": evolution(
-            posted, start, end, ZoneInfo(user.timezone), granularity
+            posted, start, end, ZoneInfo(scope_timezone(user)), granularity
         ),
         "note": "Indicadores solo de movimientos vigentes. Transferencias excluidas de ingresos y gastos; anulados pueden aparecer en el detalle.",
     }

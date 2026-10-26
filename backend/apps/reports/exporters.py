@@ -20,6 +20,8 @@ HEADERS = [
     "Método de pago",
     "Descripción",
     "Referencia",
+    "Registrado por (UUID)",
+    "Registrado por (nombre)",
 ]
 
 
@@ -39,6 +41,8 @@ def detail_row(item, zone):
         item.payment_method,
         item.description,
         item.reference,
+        str(item.owner_id),
+        item.owner.get_full_name() or "Integrante",
     ]
 
 
@@ -365,7 +369,7 @@ def export_pdf(rows, data):
                     ],
                 )
             ),
-            item.description
+            ("Registrado por: " + (item.owner.get_full_name() or "Integrante") + " | " if item.family_id else "") + item.description
             + (" | Ref: " + item.reference if item.reference else "")
             + (
                 " | Método: " + item.payment_method

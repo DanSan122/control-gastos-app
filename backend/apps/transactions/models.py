@@ -5,6 +5,7 @@ from django.db import models
 
 class Transaction(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    family = models.ForeignKey("families.Family", null=True, blank=True, on_delete=models.PROTECT)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT, related_name="outgoing")
     destination_account = models.ForeignKey("accounts.Account", on_delete=models.PROTECT, related_name="incoming", null=True, blank=True)
@@ -27,11 +28,12 @@ class Transaction(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(condition=models.Q(amount__gt=0), name="transaction_amount_positive"),
-            models.UniqueConstraint(fields=["owner", "idempotency_key"], name="transfer_idempotency_unique"),
+            models.UniqueConstraint(fields=["owner", "idempotency_key"], condition=models.Q(family__isnull=True), name="transfer_idempotency_unique"),
+            models.UniqueConstraint(fields=["family", "idempotency_key"], condition=models.Q(family__isnull=False), name="fam_transfer_idempotency_unique"),
             models.CheckConstraint(condition=(
                 models.Q(kind="TRANSFER", destination_account__isnull=False, area__isnull=True, category__isnull=True, subcategory__isnull=True)
                 | models.Q(kind__in=["INCOME", "EXPENSE"], destination_account__isnull=True, area__isnull=False, category__isnull=False)
             ), name="transaction_shape_valid"),
             models.CheckConstraint(condition=~models.Q(account=models.F("destination_account")), name="transfer_accounts_different"),
         ]
-        indexes = [models.Index(fields=["owner", "occurred_at"]), models.Index(fields=["owner", "account", "occurred_at"]), models.Index(fields=["owner", "category", "occurred_at"])]
+        indexes = [models.Index(fields=["family", "occurred_at"]), models.Index(fields=["family", "owner", "occurred_at"]), models.Index(fields=["owner", "occurred_at"]), models.Index(fields=["owner", "account", "occurred_at"]), models.Index(fields=["owner", "category", "occurred_at"])]

@@ -1,7 +1,7 @@
 # Convenciones de ControlGastos
 
 ## Alcance y estructura
-- Fases 1–6: infraestructura, usuarios, finanzas, analítica, presupuestos PEN, reportes, auditoría y recurrencias. Otras monedas, notificaciones y pagos bancarios externos requieren nuevas tareas.
+- Fases 1–7: infraestructura, usuarios, finanzas, analítica, presupuestos PEN, reportes, auditoría, recurrencias personales y familias. Otras monedas, aportes entre espacios, recurrencias familiares, notificaciones y pagos bancarios externos requieren nuevas tareas.
 - Frontend en `frontend/`; backend en `backend/`; decisiones y requisitos en `docs/`.
 - API bajo `/api/v1/`. Apps Django por dominio bajo `backend/apps/`; componentes React por funcionalidad cuando comience su implementación.
 - Inspeccionar archivos existentes antes de modificarlos. Mantener cambios acotados y documentar decisiones relevantes.
@@ -33,6 +33,9 @@
 - Catálogo inicial mediante seed_catalog idempotente; preservar seed_code estable, renombrados y estados. Revisar docs/finanzas.md al cambiar reglas.
 
 ## Verificación
+- Familias: consultar docs/familias.md. family NULL exige owner personal; family no NULL exige membresía activa, nunca owner como autorización. Usar scoped/scope_values/scope_timezone y rutas familiares explícitas; no inferir ámbito del cliente ni migrar recursos antiguos. owner familiar conserva al autor.
+- locked_family serializa todas las peticiones financieras y cambios de membresía; revalidar dentro del bloqueo, mantener un ADMIN activo. MEMBER solo edita/anula sus movimientos, nunca cuentas/clasificaciones/presupuestos. No activar recurrencias familiares ni aportes cruzados.
+- Añadir apps.families a las suites y families_flow.py a los cinco E2E previos. Comparar conteos y huellas históricas antes/después de migrar con backend/worker detenidos; no sobrescribir eventos append-only. Cancelar peticiones y desmontar datos al cambiar espacio en React.
 - Recurrencias: consultar docs/recurrencias.md. Todas las creaciones de Transaction pasan por create_movement bajo owner_lock. Unicidad regla/fecha, UUIDv5 determinista y enlace único al movimiento; no reejecutar una ocurrencia EXECUTED/VOID o SKIPPED. Calendario local anclado al inicio, zona fijada, nunca movimiento futuro.
 - Añadir apps.recurring a las suites de ocho apps anteriores y ejecutar recurring_flow.py junto con los cuatro flujos previos. El E2E automático exige recurring-worker real activo y comprueba ejecución con página cerrada. Aplicar migraciones antes de iniciar el worker optativo de desarrollo; no configurar scheduler de producción sin autorización.
 - Auditoría: todas las escrituras siguen owner_lock + save; no bulk/update directo en modelos financieros. Eventos atómicos, append-only; no auditar secretos, description/reference/institution. Consultar docs/reportes-auditoria.md. No recrear eventos previos a activación.

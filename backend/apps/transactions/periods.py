@@ -1,3 +1,4 @@
+from apps.core.scope import scope_timezone
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 from django.utils import timezone
@@ -5,7 +6,7 @@ from rest_framework.exceptions import ValidationError
 
 
 def period_bounds(params, user, optional=False):
-    zone = ZoneInfo(user.timezone)
+    zone = ZoneInfo(scope_timezone(user))
     today = timezone.now().astimezone(zone).date()
     period = params.get("period")
     if optional and not period and not params.get("start") and not params.get("end"):

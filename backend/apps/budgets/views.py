@@ -1,3 +1,4 @@
+from apps.core.scope import scoped, scope_timezone
 from uuid import UUID
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -13,7 +14,7 @@ class BudgetViewSet(OwnedViewSet):
     serializer_class = BudgetSerializer
 
     def get_queryset(self):
-        rows = self.queryset.filter(owner=self.request.user)
+        rows = scoped(self.queryset, self.request.user)
         params = self.request.query_params
         for field, minimum, maximum in (("year", 1900, 9998), ("month", 1, 12)):
             if field in params:

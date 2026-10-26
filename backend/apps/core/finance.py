@@ -9,6 +9,7 @@ from rest_framework.pagination import PageNumberPagination
 
 from apps.users.authentication import CSRFSafeSessionAuthentication
 from apps.users.serializers import StrictInputMixin
+from .scope import current_family, scoped, scope_values
 
 
 class MoneyField(serializers.DecimalField):
@@ -37,6 +38,12 @@ def owner_lock(user):
     # Todas las escrituras financieras de un propietario usan el mismo orden de bloqueo.
     from apps.audit.context import audit_scope
     with transaction.atomic(), audit_scope(user):
+        family = current_family.get()
+        if family:
+            from apps.families.services import locked_family
+            with locked_family(user, family.pk):
+                yield
+            return
         get_user_model().objects.select_for_update().get(pk=user.pk)
         yield
 
@@ -44,7 +51,7 @@ def owner_lock(user):
 class OwnedSerializer(StrictInputMixin, serializers.ModelSerializer):
     def owned_relation(self, model, value, field):
         try:
-            item = model.objects.get(pk=value, owner=self.context["request"].user)
+            item = scoped(model.objects, self.context["request"].user).get(pk=value)
         except model.DoesNotExist:
             raise ValidationError({field: "El recurso no existe o no te pertenece."})
         return item
@@ -56,7 +63,7 @@ class OwnedViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
-        query = self.queryset.filter(owner=self.request.user)
+        query = scoped(self.queryset, self.request.user)
         active = self.request.query_params.get("active")
         if active is not None:
             if active not in ("true", "false"):
@@ -99,7 +106,7 @@ class OwnedViewSet(viewsets.ModelViewSet):
             return super().destroy(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        serializer.save(**scope_values(self.request.user))
 
     def perform_destroy(self, instance):
         instance.is_active = False
