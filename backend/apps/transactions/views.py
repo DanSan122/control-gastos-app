@@ -1,3 +1,4 @@
+from apps.core.scope import scoped, scope_timezone
 import hashlib
 import json
 from uuid import UUID
@@ -27,7 +28,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
-        query = Transaction.objects.filter(owner=self.request.user).select_related("account", "destination_account", "area", "category", "subcategory")
+        query = scoped(Transaction.objects, self.request.user).select_related("owner", "account", "destination_account", "area", "category", "subcategory")
         # Filtros solo en listas; no convierten un recurso propio en inaccesible al editar.
         if self.action != "list":
             return query
@@ -67,7 +68,7 @@ class TransferView(APIView):
         # Huella del payload original: reintentos deben conservar exactamente su contenido.
         fingerprint = hashlib.sha256(json.dumps(request.data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         with owner_lock(request.user):
-            previous = Transaction.objects.filter(owner=request.user, idempotency_key=key).first()
+            previous = scoped(Transaction.objects, request.user).filter(idempotency_key=key).first()
             if previous:
                 if previous.request_hash != fingerprint:
                     raise Conflict()

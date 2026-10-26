@@ -1,3 +1,4 @@
+from apps.core.scope import scoped, scope_timezone
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -30,7 +31,7 @@ class SummaryView(APIView):
             raise ValidationError({"currency": "Solo PEN está habilitado en esta fase."})
         # Snapshot lógico consistente: todas las escrituras financieras toman este bloqueo.
         with owner_lock(request.user):
-            rows = Transaction.objects.filter(owner=request.user, status="POSTED", currency="PEN", occurred_at__gte=start, occurred_at__lt=end)
+            rows = scoped(Transaction.objects, request.user).filter(status="POSTED", currency="PEN", occurred_at__gte=start, occurred_at__lt=end)
             cashflow = rows.exclude(kind="TRANSFER")
             incomes = cashflow.filter(kind="INCOME").aggregate(total=Sum("amount"))["total"] or Decimal("0")
             expenses = cashflow.filter(kind="EXPENSE").aggregate(total=Sum("amount"))["total"] or Decimal("0")
@@ -43,18 +44,18 @@ class SummaryView(APIView):
             evolution = {}
             for name, trunc in [("daily", TruncDay), ("weekly", TruncWeek), ("monthly", TruncMonth)]:
                 buckets = {}
-                for item in cashflow.annotate(bucket=trunc("occurred_at", tzinfo=ZoneInfo(request.user.timezone))).values("bucket", "kind").annotate(total=Sum("amount")).order_by("bucket"):
+                for item in cashflow.annotate(bucket=trunc("occurred_at", tzinfo=ZoneInfo(scope_timezone(request.user)))).values("bucket", "kind").annotate(total=Sum("amount")).order_by("bucket"):
                     bucket = item["bucket"].date().isoformat()
                     point = buckets.setdefault(bucket, {"date": bucket, "income": "0.00", "expense": "0.00"})
                     point["income" if item["kind"] == "INCOME" else "expense"] = money(item["total"])
                 evolution[name] = [{**point, "net": money(Decimal(point["income"]) - Decimal(point["expense"]))} for point in buckets.values()]
-            accounts = list(Account.objects.filter(owner=request.user, currency="PEN").order_by("name", "id"))
+            accounts = list(scoped(Account.objects, request.user).filter(currency="PEN").order_by("name", "id"))
             current = balances_for(accounts)
             at_end = balances_for(accounts, until=end)
             asset_balances = sum((current[a.id] for a in accounts if a.kind != "CREDIT"), Decimal("0"))
             debt = sum((max(Decimal("0"), -current[a.id]) for a in accounts if a.kind == "CREDIT"), Decimal("0"))
             return Response({
-                "currency": "PEN", "timezone": request.user.timezone, "start": start.isoformat(), "end_exclusive": end.isoformat(),
+                "currency": "PEN", "timezone": scope_timezone(request.user), "start": start.isoformat(), "end_exclusive": end.isoformat(),
                 "income": money(incomes), "expense": money(expenses), "net_flow": money(incomes - expenses),
                 "asset_balances": money(asset_balances), "credit_debt": money(debt),
                 "net_worth": money(sum(current.values(), Decimal("0"))),

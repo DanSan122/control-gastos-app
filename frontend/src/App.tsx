@@ -1,3 +1,4 @@
+import { Families, FamilyForm, Invitations, Members, FamilyScreen } from './families/pages'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { AuthProvider, useAuth } from './auth/AuthContext'
@@ -46,6 +47,25 @@ export default function App() {
       <Route path="/login" element={<Login />} /><Route path="/registro" element={<Register />} />
     </Route></Route>
     <Route element={<SessionGate privateRoute />}><Route element={<AppLayout />}>
+
+      <Route path="/familias" element={<Families />} /><Route path="/familias/nueva" element={<FamilyForm />} /><Route path="/familias/invitaciones" element={<Invitations />} />
+      <Route path="/familias/:familyId/dashboard" element={<FamilyScreen><AnalyticsPage key="family-dashboard" /></FamilyScreen>} />
+      <Route path="/familias/:familyId/analisis" element={<FamilyScreen><AnalyticsPage mode="analysis" /></FamilyScreen>} />
+      <Route path="/familias/:familyId/comparacion" element={<FamilyScreen><AnalyticsPage mode="comparison" /></FamilyScreen>} />
+      <Route path="/familias/:familyId/integrantes" element={<FamilyScreen><Members /></FamilyScreen>} />
+      <Route path="/familias/:familyId/cuentas" element={<FamilyScreen><Accounts /></FamilyScreen>} />
+      <Route path="/familias/:familyId/clasificaciones" element={<FamilyScreen><Classifications /></FamilyScreen>} />
+      <Route path="/familias/:familyId/movimientos" element={<FamilyScreen><History /></FamilyScreen>} />
+      <Route path="/familias/:familyId/movimientos/nuevo" element={<FamilyScreen><MovementForm kind="EXPENSE" /></FamilyScreen>} />
+      <Route path="/familias/:familyId/gastos/nuevo" element={<FamilyScreen><MovementForm kind="EXPENSE" /></FamilyScreen>} />
+      <Route path="/familias/:familyId/ingresos/nuevo" element={<FamilyScreen><MovementForm kind="INCOME" /></FamilyScreen>} />
+      <Route path="/familias/:familyId/transferir" element={<FamilyScreen><MovementForm kind="TRANSFER" /></FamilyScreen>} />
+      <Route path="/familias/:familyId/movimientos/:id" element={<FamilyScreen><MovementDetail /></FamilyScreen>} />
+      <Route path="/familias/:familyId/presupuestos" element={<FamilyScreen><Budgets /></FamilyScreen>} />
+      <Route path="/familias/:familyId/reportes" element={<FamilyScreen><Reports /></FamilyScreen>} />
+      <Route path="/familias/:familyId/auditoria" element={<FamilyScreen><AuditHistory /></FamilyScreen>} />
+      <Route path="/familias/:familyId/resumen" element={<FamilyScreen><Summary /></FamilyScreen>} />
+      <Route path="/familias/:familyId/configuracion" element={<FamilyScreen><FamilyForm edit /></FamilyScreen>} />
       <Route path="/dashboard" element={<AnalyticsPage key="dashboard" />} /><Route path="/analisis" element={<AnalyticsPage key="analysis" mode="analysis" />} /><Route path="/comparacion" element={<AnalyticsPage key="comparison" mode="comparison" />} /><Route path="/presupuestos" element={<Budgets />} /><Route path="/perfil" element={<Profile />} /><Route path="/seguridad" element={<Security />} />
       <Route path="/cuentas" element={<Accounts />} /><Route path="/clasificaciones" element={<Classifications />} />
       <Route path="/reportes" element={<Reports />} /><Route path="/auditoria" element={<AuditHistory />} />

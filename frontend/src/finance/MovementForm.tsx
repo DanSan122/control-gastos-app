@@ -1,15 +1,17 @@
+import { useFinancialScope } from '../families/Scope'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { Field, SubmitButton, type FormFeedback } from '../components/Form'
 import { ApiError } from '../lib/api'
-import { finance, kindLabel, localDateTime, localToIso, moneyInput, pen, type Account, type Area, type Category, type Kind, type Movement, type Subcategory } from './api'
+import { kindLabel, localDateTime, localToIso, moneyInput, pen, type Account, type Area, type Category, type Kind, type Movement, type Subcategory } from './api'
 import { FinanceFeedback, LoadState, PageHeader, Select, feedbackFrom, useResource } from './ui'
 
 export default function MovementForm({ kind, movement }: { kind: Kind; movement?: Movement }) {
+  const { finance, href, family } = useFinancialScope()
   const { user } = useAuth()
   const navigate = useNavigate()
-  const zone = user?.timezone || 'America/Lima'
+  const zone = (family?.timezone || user?.timezone) || 'America/Lima'
   const [area, setArea] = useState(movement?.area || '')
   const [category, setCategory] = useState(movement?.category || '')
   const [account, setAccount] = useState(movement?.account || '')
@@ -30,7 +32,7 @@ export default function MovementForm({ kind, movement }: { kind: Kind; movement?
       setBusy(true); setError(undefined)
       try {
         const saved = await finance.transfer(retry.payload, retry.key)
-        navigate(`/movimientos/${saved.id}`, { replace: true, state: { saved: true } })
+        navigate(href(`/movimientos/${saved.id}`), { replace: true, state: { saved: true } })
       } catch (reason) {
         if (reason instanceof ApiError && reason.status === 400) setRetry(undefined)
         setError(feedbackFrom(reason))
@@ -54,7 +56,7 @@ export default function MovementForm({ kind, movement }: { kind: Kind; movement?
         setRetry(attempt)
         saved = await finance.transfer(attempt.payload, attempt.key)
       } else saved = await finance.save<Movement>('transactions', payload, movement?.id)
-      navigate(`/movimientos/${saved.id}`, { replace: true, state: { saved: true } })
+      navigate(href(`/movimientos/${saved.id}`), { replace: true, state: { saved: true } })
     } catch (reason) {
       if (reason instanceof ApiError && reason.status === 400) setRetry(undefined)
       setError(feedbackFrom(reason))
@@ -62,10 +64,10 @@ export default function MovementForm({ kind, movement }: { kind: Kind; movement?
     finally { setBusy(false) }
   }
   return <>
-    <PageHeader eyebrow={movement ? 'EDITAR MOVIMIENTO' : 'NUEVO MOVIMIENTO'} title={movement ? `Editar ${kindLabel(kind).toLowerCase()}` : kind === 'TRANSFER' ? 'Transferir dinero' : `Registrar ${kindLabel(kind).toLowerCase()}`}>
+    <PageHeader eyebrow={family ? 'MOVIMIENTO FAMILIAR' : movement ? 'EDITAR MOVIMIENTO' : 'MOVIMIENTO PERSONAL'} title={movement ? `Editar ${kindLabel(kind).toLowerCase()}` : kind === 'TRANSFER' ? 'Transferir dinero' : `Registrar ${kindLabel(kind).toLowerCase()}`}>
       {kind === 'TRANSFER' ? 'Entre cuentas propias. El pago de una tarjeta es una transferencia hacia esa tarjeta.' : 'Registra cada movimiento una sola vez, con su fecha efectiva.'}
     </PageHeader><LoadState {...state} retry={state.reload} />
-    {state.data && !state.data.accounts.some((item) => item.is_active || item.id === movement?.account) ? <div className="card"><p>Crea una cuenta antes de registrar movimientos.</p><Link to="/cuentas" className="text-link mt-3 inline-block">Ir a mis cuentas</Link></div> : null}
+    {state.data && !state.data.accounts.some((item) => item.is_active || item.id === movement?.account) ? <div className="card"><p>Crea una cuenta antes de registrar movimientos.</p><Link to={href("/cuentas")} className="text-link mt-3 inline-block">Ir a mis cuentas</Link></div> : null}
     {state.data?.accounts.length ? <section className="card max-w-3xl"><FinanceFeedback error={error} />
       {retry ? <p className="my-4 rounded-lg bg-amber-50 p-4 text-sm text-amber-900">El reintento conserva exactamente los datos del primer envío para evitar duplicados. No cierres esta página hasta confirmar el resultado en el historial.</p> : null}
       <form onSubmit={submit} aria-label="Movimiento financiero" className="mt-5"><fieldset disabled={busy || Boolean(retry)} className="grid gap-5 sm:grid-cols-2">
@@ -83,7 +85,7 @@ export default function MovementForm({ kind, movement }: { kind: Kind; movement?
         <Field label="Referencia" name="reference" maxLength={100} defaultValue={movement?.reference} /><div className="sm:col-span-2"><Field label="Descripción" name="description" maxLength={500} defaultValue={movement?.description} /></div>
       </fieldset>
       <div className="mt-6"><SubmitButton busy={busy}>{retry ? 'Reintentar la misma transferencia' : movement ? 'Guardar corrección' : kind === 'TRANSFER' ? 'Confirmar transferencia' : `Guardar ${kindLabel(kind).toLowerCase()}`}</SubmitButton></div>
-      {retry ? <Link className="text-link mt-4 inline-block text-sm" to="/movimientos">Consultar historial antes de otro envío</Link> : null}
+      {retry ? <Link className="text-link mt-4 inline-block text-sm" to={href("/movimientos")}>Consultar historial antes de otro envío</Link> : null}
       </form><p className="mt-5 text-xs leading-relaxed text-slate-500">Importes exactos con dos decimales. Zona horaria: {zone}. En una tarjeta, registra la compra como gasto y el pago posterior como transferencia.</p>
     </section> : null}
   </>

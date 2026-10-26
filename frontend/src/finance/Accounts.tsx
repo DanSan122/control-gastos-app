@@ -1,10 +1,12 @@
+import { useFinancialScope } from '../families/Scope'
 import { useState, type FormEvent } from 'react'
 import { Field, SubmitButton, type FormFeedback } from '../components/Form'
-import { finance, pen, moneyInput, type Account } from './api'
+import { pen, moneyInput, type Account } from './api'
 import { FinanceFeedback, LoadState, PageHeader, Select, feedbackFrom, useResource } from './ui'
 
 const accountKinds = { CASH: 'Efectivo', BANK: 'Banco', WALLET: 'Billetera digital', CREDIT: 'Tarjeta de crédito', OTHER: 'Otra cuenta de activos' }
 export default function Accounts() {
+  const { finance, family } = useFinancialScope()
   const state = useResource((signal) => finance.all<Account>('accounts', '', signal))
   const [editing, setEditing] = useState<Account>()
   const [kind, setKind] = useState<Account['kind']>('BANK')
@@ -43,12 +45,12 @@ export default function Accounts() {
           <p className="eyebrow">{accountKinds[account.kind]} · {account.is_active ? 'Activa' : 'Inactiva'}</p><h2 className="mt-3 break-words text-xl font-semibold">{account.name}</h2>
           <p className="mt-1 text-sm text-slate-500">{account.institution || 'Sin institución'}</p><p className="mt-5 break-words text-2xl font-semibold">{pen(account.balance)}</p>
           <p className="mt-2 text-xs text-slate-500">{account.kind === 'CREDIT' ? `Deuda pendiente: ${pen(account.debt)}. No es límite de crédito.` : 'Saldo calculado desde tus movimientos.'}</p>
-          <div className="mt-5 flex flex-wrap gap-3"><button className="button-secondary" disabled={busy} onClick={() => { setEditing(account); setKind(account.kind); setError(undefined) }}>Editar</button>
-            {account.is_active ? <button className="text-sm text-red-700" disabled={busy} onClick={() => deactivate(account)}>Desactivar</button> : null}</div>
+          <div className="mt-5 flex flex-wrap gap-3"><button className="button-secondary" disabled={busy || Boolean(family && family.role !== 'ADMIN')} onClick={() => { setEditing(account); setKind(account.kind); setError(undefined) }}>Editar</button>
+            {account.is_active ? <button className="text-sm text-red-700" disabled={busy || Boolean(family && family.role !== 'ADMIN')} onClick={() => deactivate(account)}>Desactivar</button> : null}</div>
         </article>)}</div>
       </section>
       <section className="card"><h2 className="mb-5 text-xl font-semibold">{editing ? 'Editar cuenta' : 'Nueva cuenta'}</h2>
-        <form aria-label={editing ? 'Editar cuenta' : 'Nueva cuenta'} onSubmit={submit} key={editing?.id || 'new'}><fieldset disabled={busy} className="space-y-5">
+        <form aria-label={editing ? 'Editar cuenta' : 'Nueva cuenta'} onSubmit={submit} key={editing?.id || 'new'}><fieldset disabled={busy || Boolean(family && family.role !== 'ADMIN')} className="space-y-5">
           <Field label="Nombre de la cuenta" name="name" required maxLength={100} defaultValue={editing?.name} placeholder="Ej.: BCP soles, efectivo, Yape propio" />
           <Field label="Institución" name="institution" maxLength={100} defaultValue={editing?.institution} list="institutions" /><datalist id="institutions"><option value="BCP" /><option value="Interbank" /><option value="BBVA" /><option value="Scotiabank" /><option value="Banco de la Nación" /><option value="Yape" /><option value="Plin" /></datalist>
           <Select label="Tipo de cuenta" name="kind" value={kind} onChange={(event) => setKind(event.target.value as Account['kind'])}>{Object.entries(accountKinds).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select>

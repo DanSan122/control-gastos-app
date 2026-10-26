@@ -1,3 +1,4 @@
+from apps.core.scope import scoped, scope_timezone
 from decimal import Decimal
 from rest_framework import serializers
 from apps.categories.models import Area, Category
@@ -34,7 +35,7 @@ class BudgetSerializer(OwnedSerializer):
         area, category = value("area"), value("category")
         if bool(area) == bool(category):
             raise serializers.ValidationError("Selecciona área o categoría, exclusivamente una.")
-        duplicate = Budget.objects.filter(owner=self.context["request"].user, area=area, category=category, year=value("year"), month=value("month"), currency=value("currency", "PEN"))
+        duplicate = scoped(Budget.objects, self.context["request"].user).filter(area=area, category=category, year=value("year"), month=value("month"), currency=value("currency", "PEN"))
         if self.instance:
             duplicate = duplicate.exclude(pk=self.instance.pk)
         if duplicate.exists():

@@ -1,3 +1,4 @@
+from apps.core.scope import scoped, scope_timezone
 from datetime import datetime, time, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from zoneinfo import ZoneInfo
@@ -44,7 +45,7 @@ def chart_scale(points, keys):
 
 def ranges(params, user):
     start, calendar_end = period_bounds(params, user)
-    now = timezone.now().astimezone(ZoneInfo(user.timezone))
+    now = timezone.now().astimezone(ZoneInfo(scope_timezone(user)))
     end = min(calendar_end, now)
     if start >= end:
         raise ValidationError({"period": "Selecciona un periodo que haya comenzado."})
@@ -90,10 +91,10 @@ def analytics(params, user, request, section="dashboard"):
     if granularity not in ("daily", "weekly", "monthly"):
         raise ValidationError({"granularity": "Usa daily, weekly o monthly."})
     start, end, previous_start, previous_end, days = ranges(params, user)
-    zone = ZoneInfo(user.timezone)
-    base = Transaction.objects.filter(owner=user, status="POSTED", currency="PEN")
+    zone = ZoneInfo(scope_timezone(user))
+    base = scoped(Transaction.objects, user).filter(status="POSTED", currency="PEN")
     rows = base.filter(occurred_at__gte=start, occurred_at__lt=end)
-    result = {"currency": "PEN", "timezone": user.timezone, "start": start.isoformat(), "end_exclusive": end.isoformat()}
+    result = {"currency": "PEN", "timezone": scope_timezone(user), "start": start.isoformat(), "end_exclusive": end.isoformat()}
     current = totals(rows)
     result.update({key: money(value) for key, value in current.items()})
     if section in ("dashboard", "comparison"):
@@ -106,14 +107,18 @@ def analytics(params, user, request, section="dashboard"):
         result["areas"] = distribution(rows, "area")
         result["categories"] = distribution(rows, "category")
     if section == "dashboard":
-        accounts = list(Account.objects.filter(owner=user, currency="PEN").order_by("name", "id"))
+        accounts = list(scoped(Account.objects, user).filter(currency="PEN").order_by("name", "id"))
         balances = balances_for(accounts)
         assets = sum((balances[a.pk] for a in accounts if a.kind != "CREDIT"), ZERO)
         debt = sum((max(ZERO, -balances[a.pk]) for a in accounts if a.kind == "CREDIT"), ZERO)
         result.update(asset_balances=money(assets), credit_debt=money(debt), net_worth=money(sum(balances.values(), ZERO)), average_daily_expense=money((current["expense"] / days).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)), days=days, top_category=result["categories"][0] if result["categories"] else None)
         result["accounts"] = AccountSerializer(accounts, many=True, context={"request": request, "balances": balances}).data
         today = timezone.now().astimezone(zone)
-        budgets = list(Budget.objects.filter(owner=user, is_active=True, year=today.year, month=today.month).select_related("area", "category__area"))
+        budgets = list(scoped(Budget.objects, user).filter(is_active=True, year=today.year, month=today.month).select_related("area", "category__area"))
         progress = progress_for(budgets, user)
         result["budget_alerts"] = [{"id": str(b.pk), **progress[b.pk]} for b in budgets if progress[b.pk]["alert"] in ("WARNING", "EXCEEDED")]
+        from apps.core.scope import current_family
+        if current_family.get():
+            from apps.transactions.serializers import TransactionSerializer
+            result["recent_movements"] = TransactionSerializer(base.select_related("owner", "account", "destination_account", "area", "category", "subcategory").order_by("-occurred_at", "id")[:10], many=True).data
     return result

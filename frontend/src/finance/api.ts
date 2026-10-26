@@ -9,7 +9,7 @@ export interface Movement {
   id: string; kind: Kind; account: string; account_name: string; destination_account: string | null; destination_name: string | null
   amount: string; currency: string; area: string | null; area_name: string | null; category: string | null; category_name: string | null
   subcategory: string | null; subcategory_name: string | null; description: string; occurred_at: string; created_at: string; updated_at: string
-  payment_method: string; reference: string; status: 'POSTED' | 'VOID'
+  registered_by: string; registered_by_name: string; payment_method: string; reference: string; status: 'POSTED' | 'VOID'
 }
 export interface Page<T> { count: number; next: string | null; previous: string | null; results: T[] }
 export interface Summary {
@@ -18,24 +18,28 @@ export interface Summary {
   expenses_by_area: { id: string; name: string; amount: string }[]; expenses_by_category: { id: string; name: string; amount: string }[]
   evolution: Record<'daily' | 'weekly' | 'monthly', { date: string; income: string; expense: string; net: string }[]>
 }
-export const finance = {
-  list: <T,>(resource: string, query = '', signal?: AbortSignal) => request<Page<T>>(`/${resource}/?${query}`, { private: true, signal }),
+export function createFinance(send: typeof request = request) {
+ const client = {
+  list: <T,>(resource: string, query = '', signal?: AbortSignal) => send<Page<T>>(`/${resource}/?${query}`, { private: true, signal }),
   all: async <T,>(resource: string, query = '', signal?: AbortSignal): Promise<T[]> => {
     const result: T[] = []
     let page = 1
     while (true) {
-      const data = await finance.list<T>(resource, `${query}&page_size=100&page=${page}`, signal)
+      const data = await client.list<T>(resource, `${query}&page_size=100&page=${page}`, signal)
       result.push(...data.results)
       if (!data.next) return result
       page += 1
     }
   },
-  get: <T,>(resource: string, id: string, signal?: AbortSignal) => request<T>(`/${resource}/${id}/`, { private: true, signal }),
-  save: <T,>(resource: string, data: unknown, id?: string) => request<T>(`/${resource}/${id ? `${id}/` : ''}`, { method: id ? 'PATCH' : 'POST', data, private: true }),
-  remove: (resource: string, id: string) => request<void>(`/${resource}/${id}/`, { method: 'DELETE', private: true }),
-  transfer: (data: unknown, key: string) => request<Movement>('/transfers/', { method: 'POST', data, private: true, headers: { 'Idempotency-Key': key } }),
-  summary: (query: string, signal?: AbortSignal) => request<Summary>(`/reports/summary/?${query}`, { private: true, signal }),
+  get: <T,>(resource: string, id: string, signal?: AbortSignal) => send<T>(`/${resource}/${id}/`, { private: true, signal }),
+  save: <T,>(resource: string, data: unknown, id?: string) => send<T>(`/${resource}/${id ? `${id}/` : ''}`, { method: id ? 'PATCH' : 'POST', data, private: true }),
+  remove: (resource: string, id: string) => send<void>(`/${resource}/${id}/`, { method: 'DELETE', private: true }),
+  transfer: (data: unknown, key: string) => send<Movement>('/transfers/', { method: 'POST', data, private: true, headers: { 'Idempotency-Key': key } }),
+  summary: (query: string, signal?: AbortSignal) => send<Summary>(`/reports/summary/?${query}`, { private: true, signal }),
 }
+ return client
+}
+export const finance = createFinance()
 
 export function pen(value: string): string {
   const negative = value.startsWith('-')

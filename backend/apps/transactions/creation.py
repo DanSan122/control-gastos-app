@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from django.db import connection
 from apps.audit.context import current_actor
 from .serializers import TransactionSerializer
+from apps.core.scope import scope_values
 
 
 def create_movement(
@@ -16,5 +17,5 @@ def create_movement(
     )
     serializer.is_valid(raise_exception=True)
     return serializer.save(
-        owner=user, idempotency_key=idempotency_key, request_hash=request_hash
+        **scope_values(user), idempotency_key=idempotency_key, request_hash=request_hash
     )

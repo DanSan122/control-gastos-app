@@ -10,8 +10,11 @@ def balances_for(accounts, until=None):
     balances = {account.id: account.initial_balance for account in accounts}
     if not balances:
         return balances
-    owner = accounts[0].owner_id
-    rows = Transaction.objects.filter(owner_id=owner, status="POSTED")
+    first = accounts[0]
+    if any(a.family_id != first.family_id or (not first.family_id and a.owner_id != first.owner_id) for a in accounts):
+        raise ValueError("Mixed financial scopes")
+    scope = {"family_id": first.family_id} if first.family_id else {"family__isnull": True, "owner_id": first.owner_id}
+    rows = Transaction.objects.filter(**scope, status="POSTED")
     if until:
         rows = rows.filter(occurred_at__lt=until)
     else:

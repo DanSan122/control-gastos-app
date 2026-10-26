@@ -1,4 +1,35 @@
-# Verificación — Fases 1–6
+# Verificación — Fases 1–7
+
+## Fase 7: espacios familiares
+
+Inicio: 24 de octubre de 2026; cierre de verificación: 26 de octubre de 2026, America/Lima. Base comprobada: main/origin/main c164484, PR #1 de Fase 6 fusionado y árbol limpio antes de iniciar. Trabajo en feature/fase-7-familias; sin commits, push ni merge.
+
+| Comprobación | Resultado real |
+| --- | --- |
+| Inspección | Instrucciones, documentación financiera, modelos, validaciones, servicios, agregaciones, auditoría, frontend y worker revisados; ámbito personal/familiar centralizado |
+| Regresión previa de Fase 6 | 126 tests PostgreSQL OK, 126.313 s, después de la adaptación inicial de consultas |
+| Pruebas familiares iniciales | 20 tests PostgreSQL OK, 35.051 s; después 23 tests incluidos tres concurrentes: OK, 374.977 s bajo carga del entorno |
+| Familias y reportes | 30 tests PostgreSQL OK, 45.277 s, incluidos exportadores y privacidad |
+| Migraciones aplicadas | families/0001 y 0002; accounts/0002; categories/0002; transactions/0002 y 0003; budgets/0002 y 0003; audit/0004 y 0005. Revisadas: tablas/FK opcionales, unicidades parciales, CHECK e índices; sin migración de filas financieras |
+| Preservación histórica | Antes/después: 24 usuarios, 33 cuentas, 223 áreas, 271 categorías, 223 subcategorías, 37 movimientos, 7 presupuestos, 13 reglas, 16 ejecuciones y 128 eventos; SHA-256 de todos sus campos históricos idénticos; registros anteriores siguen siendo PERSONAL |
+| Configuración | Django check sin incidencias; makemigrations --check --dry-run: No changes detected |
+| Secretos | Escáner local: cuatro commits y 202 archivos candidatos, cero hallazgos; no imprime valores sensibles |
+| Suite completa PostgreSQL | 152 tests OK, sin omisiones, 2336.944 s bajo carga del entorno; incluye las 126 regresiones anteriores y 26 pruebas familiares |
+| Frontend final | npm run typecheck y npm run build OK; 659 módulos, sin advertencias de build; inicial 336.27 kB y analítica diferida 428.17 kB |
+| Repetición familiar final PostgreSQL | 26 tests OK, 447.512 s, después de validar rol nulo y conservar joined_at al reactivar membresías |
+| Privacidad de invitaciones | Test específico PostgreSQL repetido: OK, 15.014 s, tras mostrar el correo introducido solo en la lista administrativa/bandeja del destinatario |
+| PDF sintético | 16 páginas renderizadas, total 49382.40 y última referencia presentes, todas las cajas dentro de la página. Portada, detalle y cierre inspeccionados; nombre con signos HTML mostrado literalmente |
+| Chromium familiar final | families_flow.py OK: tres usuarios, invitación/aceptación, gasto compartido, separación personal, exportación, retirada y conservación de historial. Captura móvil del dashboard cargado inspeccionada: selector familiar, indicadores, seis gráficos y saldos sin desbordamiento |
+| Suite completa SQLite (26 de octubre) | 152 tests OK, skipped=9, 165.565 s: seis concurrencias PostgreSQL, dos casos NUMERIC extremos y trigger append-only exclusivo de PostgreSQL omitidos justificadamente |
+| Comprobaciones finales (26 de octubre) | diff --check OK; escáner: cuatro commits y 202 candidatos, cero hallazgos; Django check sin incidencias y makemigrations --check --dry-run sin cambios |
+| Chromium regresiones finales | auth_flow.py, finance_flow.py, analytics_flow.py, reports_flow.py y recurring_flow.py OK, ejecutados secuencialmente tras terminar SQLite. Incluye respuesta perdida/reintento, sesiones/CSRF, exportaciones, auditoría y worker real con página cerrada; lote completo terminó con código 0 |
+| Cierre | Comprobaciones pendientes completadas; sin exclusiones nuevas de pruebas ni cambios en producción |
+
+La comprobación histórica se realizó con backend y worker detenidos, antes de crear usuarios sintéticos del navegador. El segundo grupo de migraciones añade solo índices/restricciones de estado. La auditoría append-only previa permanece instalada; los eventos existentes no se modificaron.
+
+Problemas encontrados: Docker Desktop inicialmente inactivo (se inició sin instalaciones globales); dos aserciones iniciales de tests corregidas para JsonResponse/UUID; primer Chromium agotó carga de Vite; selector de test ambiguo con varios role=status corregido; la primera captura móvil correspondía al estado de carga, por lo que se reforzó la espera de datos/gráficos y se corrigió el selector provisional de espacio. La regresión de login de cinco segundos pasó al repetirla sin suites backend concurrentes y sin cambiar sus aserciones. El QA PDF normaliza espacios de extracción para comprobar referencias partidas entre líneas, manteniendo la verificación de importes y límites de página. Ningún intento fallido se considera aprobado. Los procesos de la sesión anterior no estaban disponibles al retomar el trabajo: SQLite y los seis navegadores se repitieron el 26 de octubre para obtener resultados verificables.
+
+Arquitectura, matriz de permisos, contratos y limitaciones en [familias.md](familias.md). Recurrencias familiares y aportes entre espacios quedan fuera del alcance. No se modifica producción ni el registro de usuarios existente; la propuesta de aprovisionamiento restringido está documentada antes de cambiar ese contrato.
 
 ## Fase 6: movimientos recurrentes
 

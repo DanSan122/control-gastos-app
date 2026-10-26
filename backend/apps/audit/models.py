@@ -20,6 +20,7 @@ class AppendOnlyQuerySet(models.QuerySet):
 
 class AuditEvent(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    family = models.ForeignKey("families.Family", null=True, blank=True, on_delete=models.PROTECT)
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT
     )
@@ -39,6 +40,7 @@ class AuditEvent(models.Model):
     class Meta:
         ordering = ["-occurred_at", "-id"]
         indexes = [
+            models.Index(fields=["family", "occurred_at"]),
             models.Index(fields=["actor", "occurred_at"]),
             models.Index(fields=["actor", "resource_type", "resource_id"]),
         ]

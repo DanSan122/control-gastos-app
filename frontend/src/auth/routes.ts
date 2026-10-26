@@ -1,4 +1,4 @@
 const destinations = ['/dashboard', '/reportes', '/auditoria', '/analisis', '/comparacion', '/presupuestos', '/perfil', '/seguridad', '/cuentas', '/clasificaciones', '/gastos/nuevo', '/ingresos/nuevo', '/transferir', '/movimientos', '/resumen']
 export function privateDestination(value: string | undefined) {
-  return value && (destinations.includes(value) || value === '/recurrentes' || value === '/recurrentes/nueva' || /^\/recurrentes\/[0-9a-f-]{36}(\/editar)?$/i.test(value) || /^\/movimientos\/[0-9a-f-]{36}$/i.test(value)) ? value : '/dashboard'
+  return value && (destinations.includes(value) || /^\/familias(?:\/(?:nueva|invitaciones|[0-9a-f-]{36}\/(?:dashboard|integrantes|cuentas|clasificaciones|movimientos(?:\/(?:nuevo|[0-9a-f-]{36}))?|gastos\/nuevo|ingresos\/nuevo|transferir|presupuestos|reportes|auditoria|configuracion|analisis|comparacion|resumen)))?$/i.test(value) || value === '/recurrentes' || value === '/recurrentes/nueva' || /^\/recurrentes\/[0-9a-f-]{36}(\/editar)?$/i.test(value) || /^\/movimientos\/[0-9a-f-]{36}$/i.test(value)) ? value : '/dashboard'
 }

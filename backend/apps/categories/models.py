@@ -7,6 +7,7 @@ from django.db.models.functions import Lower
 
 class Classification(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    family = models.ForeignKey("families.Family", null=True, blank=True, on_delete=models.PROTECT)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     name = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
@@ -20,8 +21,10 @@ class Classification(models.Model):
 class Area(Classification):
     class Meta:
         constraints = [
-            models.UniqueConstraint(Lower("name"), "owner", name="area_owner_name_unique"),
-            models.UniqueConstraint(fields=["owner", "seed_code"], name="area_seed_unique"),
+            models.UniqueConstraint(Lower("name"), "owner", condition=models.Q(family__isnull=True), name="area_owner_name_unique"),
+            models.UniqueConstraint(Lower("name"), "family", condition=models.Q(family__isnull=False), name="fam_area_owner_name_unique"),
+            models.UniqueConstraint(fields=["owner", "seed_code"], condition=models.Q(family__isnull=True), name="area_seed_unique"),
+            models.UniqueConstraint(fields=["family", "seed_code"], condition=models.Q(family__isnull=False), name="fam_area_seed_unique"),
         ]
 
 
@@ -31,8 +34,10 @@ class Category(Classification):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(Lower("name"), "owner", "area", "kind", name="category_owner_name_unique"),
-            models.UniqueConstraint(fields=["owner", "seed_code"], name="category_seed_unique"),
+            models.UniqueConstraint(Lower("name"), "owner", "area", "kind", condition=models.Q(family__isnull=True), name="category_owner_name_unique"),
+            models.UniqueConstraint(Lower("name"), "family", "area", "kind", condition=models.Q(family__isnull=False), name="fam_category_owner_name_unique"),
+            models.UniqueConstraint(fields=["owner", "seed_code"], condition=models.Q(family__isnull=True), name="category_seed_unique"),
+            models.UniqueConstraint(fields=["family", "seed_code"], condition=models.Q(family__isnull=False), name="fam_category_seed_unique"),
         ]
 
 
@@ -41,6 +46,8 @@ class Subcategory(Classification):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(Lower("name"), "owner", "category", name="subcategory_owner_name_unique"),
-            models.UniqueConstraint(fields=["owner", "seed_code"], name="subcategory_seed_unique"),
+            models.UniqueConstraint(Lower("name"), "owner", "category", condition=models.Q(family__isnull=True), name="subcategory_owner_name_unique"),
+            models.UniqueConstraint(Lower("name"), "family", "category", condition=models.Q(family__isnull=False), name="fam_subcategory_owner_name_unique"),
+            models.UniqueConstraint(fields=["owner", "seed_code"], condition=models.Q(family__isnull=True), name="subcategory_seed_unique"),
+            models.UniqueConstraint(fields=["family", "seed_code"], condition=models.Q(family__isnull=False), name="fam_subcategory_seed_unique"),
         ]

@@ -1,3 +1,4 @@
+from apps.core.scope import scoped, scope_timezone
 from uuid import UUID
 from django.db.models import Q
 from rest_framework.exceptions import ValidationError
@@ -6,10 +7,16 @@ from .periods import period_bounds
 
 
 def filtered_transactions(user, params, optional_period=True):
-    query = Transaction.objects.filter(owner=user).select_related(
-        "account", "destination_account", "area", "category", "subcategory"
+    query = scoped(Transaction.objects, user).select_related(
+        "owner", "account", "destination_account", "area", "category", "subcategory"
     )
     start, end = period_bounds(params, user, optional=optional_period)
+    if params.get("registered_by"):
+        try:
+            identifier = UUID(params["registered_by"])
+        except ValueError:
+            raise ValidationError({"registered_by": "UUID inválido."})
+        query = query.filter(owner_id=identifier)
     if start:
         query = query.filter(occurred_at__gte=start, occurred_at__lt=end)
     for field in ("account", "area", "category", "subcategory"):

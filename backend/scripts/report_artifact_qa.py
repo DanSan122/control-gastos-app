@@ -16,6 +16,9 @@ total = format(Decimal("1234.56") * 40, ".2f")
 namespace = lambda name: SimpleNamespace(name=name)
 rows = [
     SimpleNamespace(
+        owner_id=UUID(int=99),
+        owner=SimpleNamespace(get_full_name=lambda: "Familiar QA <prueba> & nombre"),
+        family_id=UUID(int=100),
         pk=UUID(int=index + 1),
         occurred_at=datetime(2026, 10, 10, 17, 25, tzinfo=timezone.utc),
         kind="EXPENSE",

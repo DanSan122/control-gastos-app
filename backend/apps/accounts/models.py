@@ -15,6 +15,7 @@ class Account(models.Model):
         OTHER = "OTHER", "Otra cuenta de activos"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    family = models.ForeignKey("families.Family", null=True, blank=True, on_delete=models.PROTECT)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     name = models.CharField(max_length=100)
     kind = models.CharField(max_length=10, choices=Kind.choices)
@@ -26,6 +27,7 @@ class Account(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(Lower("name"), "owner", name="account_owner_name_unique"),
+            models.UniqueConstraint(Lower("name"), "owner", condition=models.Q(family__isnull=True), name="account_owner_name_unique"),
+            models.UniqueConstraint(Lower("name"), "family", condition=models.Q(family__isnull=False), name="fam_account_owner_name_unique"),
             models.CheckConstraint(condition=~models.Q(kind="CREDIT") | models.Q(initial_balance__lte=0), name="credit_initial_nonpositive"),
         ]

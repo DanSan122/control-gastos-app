@@ -1,3 +1,4 @@
+from apps.core.scope import scoped, scope_timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -19,7 +20,7 @@ class AccountSerializer(OwnedSerializer):
     def validate(self, attrs):
         owner = self.context["request"].user
         name = attrs.get("name", getattr(self.instance, "name", ""))
-        query = Account.objects.filter(owner=owner, name__iexact=name)
+        query = scoped(Account.objects, owner).filter(name__iexact=name)
         if self.instance:
             query = query.exclude(pk=self.instance.pk)
             if self.instance.outgoing.exists() or self.instance.incoming.exists():
